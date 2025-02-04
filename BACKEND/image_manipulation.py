@@ -9,11 +9,13 @@ import sklearn.cluster as cluster
 img = cv2.imread('vision-board/BACKEND/checkboard.jpg', cv2.IMREAD_GRAYSCALE)
 assert img is not None, "File not found."
 
+print("begin")
+
 # Perform canny edge detection.
 edges = cv2.Canny(img,100,200)
 cdst = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
 
-# Perform probabilistic hough transform and draw lines into the image.
+# Perform probabilistic hough transform and draw lines into the image
 lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 50, None, 50, 10)
 print(lines)
 if lines is not None:
@@ -26,6 +28,8 @@ while True:
     cv2.imshow('test', cdst)
     if cv2.waitKey(1) == ord('q'):
         break
+
+
 
 
 
@@ -49,8 +53,100 @@ for line in lines:
 
 
 
+
+
 # fit and predict the lines --> returns each line's cluster (horizontal or vertical)
 # NOTE: just predicting the lines on the training data
 slopes = np.array(line_slopes).reshape(-1, 1)
 slope_clusters = agglom_model.fit_predict(slopes)
+
+print(slope_clusters)
+print(len(slope_clusters))
+
+
+
+# calculate the mean x and mean y
+sum_x = 0
+sum_y = 0
+num_directional_lines = 0
+line_direction = 0
+
+# track max and min x value and/or y value
+
+for i in range(len(lines)):
+    # only counts vertical or horizontal lines (depending on set to 0 or 1)
+    if slope_clusters[i] == line_direction:
+        cv2.line(cdst, (lines[i][0][0], lines[i][0][1]), (lines[i][0][2], lines[i][0][3]), (255,0,0), 3, cv2.LINE_AA)
+        sum_x += lines[i][0][0] + lines[i][0][2]
+        sum_y += lines[i][0][1] + lines[i][0][3]
+        num_directional_lines += 1
+
+avg_x = int(sum_x / (2 * num_directional_lines))
+avg_y = int(sum_y / (2 * num_directional_lines))
+
+
+
+# show image
+cv2.circle(cdst, (avg_x, avg_y), 5, (0, 255, 0), 10)
+while True:
+    cv2.imshow('test', cdst)
+    if cv2.waitKey(1) == ord('q'):
+        break
+
+
+
+# print("line slopes")
+print(line_slopes)
+# average slope 
+avg_angle = 0
+for i in range(len(lines)):
+    # only counts vertical or horizontal lines (depending on set to 0 or 1)
+    if slope_clusters[i] == line_direction:
+        avg_angle += math.atan(line_slopes[i])
+
+
+
+# avg_slope = avg_slope / (2 * num_directional_lines)
+avg_slope = math.tan(avg_angle / (num_directional_lines))
+
+print("AVERAGE SLOPE")
+print(avg_slope)
+
+
+cv2.line(cdst, (avg_x, avg_y), (avg_x + 100, avg_y + int((avg_slope * 100)) ), (255,0,0), 5, cv2.LINE_AA)
+
+while True:
+    cv2.imshow('test', cdst)
+    if cv2.waitKey(1) == ord('q'):
+        break
+        
+
+# find intercept of horizontal lines with mean vertical line
+# y = mx + b
+
+# calculate y-intercept (b) of mean vertical line
+# b = y - mx
+y_intercept_avg_vert_line = avg_y - (avg_slope * avg_x)
+
+
+# calcualte y-intercept (b) for each horizontal line
+
+
+for i in range(len(lines)):
+    # only counts vertical or horizontal lines (depending on set to 0 or 1)
+    if slope_clusters[i] != line_direction:
+        # b = y - mx
+        y_intercept_horizontal_line = lines[i][0][1] - (line_slopes[i] * lines[i][0][0])
+        
+
+
+
+
+
+
+# DBSCAN
+# dbscan_model = cluster.dbscan()
+
+
+
 
