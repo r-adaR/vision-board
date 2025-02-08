@@ -6,7 +6,7 @@ public class TitleScreenButtonScripts : MonoBehaviour
 {
     public void OnStartButtonClick()
     {
-        SceneManager.LoadSceneAsync(1);
+        LoadingScreen.instance.LoadScene(LoadingScreen.Scene.GAME);
         Debug.Log("start button clicked");
     }
 
