@@ -6,7 +6,7 @@ from matplotlib import image as im
 import sklearn.cluster as cluster
 
 # Read image as grayscale.
-img = cv2.imread('vision-board/BACKEND/checkboard.jpg', cv2.IMREAD_GRAYSCALE)
+img = cv2.imread('easy_0.png', cv2.IMREAD_GRAYSCALE)
 assert img is not None, "File not found."
 
 print("begin")
@@ -130,23 +130,36 @@ y_intercept_avg_vert_line = avg_y - (avg_slope * avg_x)
 
 
 # calcualte y-intercept (b) for each horizontal line
-
+intersections = []
 
 for i in range(len(lines)):
     # only counts vertical or horizontal lines (depending on set to 0 or 1)
     if slope_clusters[i] != line_direction:
         # b = y - mx
         y_intercept_horizontal_line = lines[i][0][1] - (line_slopes[i] * lines[i][0][0])
-        
+        intersection_x = (y_intercept_avg_vert_line - y_intercept_horizontal_line) / (line_slopes[i] - avg_slope)
+        intersection_y = ((avg_slope * intersection_x) + y_intercept_avg_vert_line)
+        intersections.append([intersection_x, intersection_y])
+        cv2.circle(cdst, (int(intersection_x), int(intersection_y)), 5, (0, 255, 0), 10)
 
 
-
-
-
+while True:
+    cv2.imshow('test', cdst)
+    if cv2.waitKey(1) == ord('q'):
+        break
 
 # DBSCAN
-# dbscan_model = cluster.dbscan()
+intercept_clusters = cluster.DBSCAN(eps=0.4, min_samples=3).fit_predict(np.array(intersections))
+print(intercept_clusters)
 
+for i in range(len(intersections)):
+    s = set()
 
+    if intercept_clusters[i] >= 0 and intercept_clusters[i] not in s:
+        cv2.circle(cdst, (int(intersections[i][0]), int(intersections[i][1])), 5, (255, 255, 255), 10)
+        s.add(intercept_clusters[i])
 
-
+while True:
+    cv2.imshow('test', cdst)
+    if cv2.waitKey(1) == ord('q'):
+        break
