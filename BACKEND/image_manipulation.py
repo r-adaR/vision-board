@@ -5,6 +5,9 @@ from matplotlib import pyplot as plt
 from matplotlib import image as im
 import sklearn.cluster as cluster
 
+# Enumeration
+EPSILON = 60
+
 # Read image as grayscale.
 img = cv2.imread('easy_0.png', cv2.IMREAD_GRAYSCALE)
 assert img is not None, "File not found."
@@ -87,11 +90,11 @@ avg_y = int(sum_y / (2 * num_directional_lines))
 
 
 # show image
-cv2.circle(cdst, (avg_x, avg_y), 5, (0, 255, 0), 10)
+"""cv2.circle(cdst, (avg_x, avg_y), 5, (0, 255, 0), 10)
 while True:
     cv2.imshow('test', cdst)
     if cv2.waitKey(1) == ord('q'):
-        break
+        break"""
 
 
 
@@ -113,12 +116,12 @@ print("AVERAGE SLOPE")
 print(avg_slope)
 
 
-cv2.line(cdst, (avg_x, avg_y), (avg_x + 100, avg_y + int((avg_slope * 100)) ), (255,0,0), 5, cv2.LINE_AA)
+#cv2.line(cdst, (avg_x, avg_y), (avg_x + 100, avg_y + int((avg_slope * 100)) ), (255,0,0), 5, cv2.LINE_AA)
 
-while True:
+"""while True:
     cv2.imshow('test', cdst)
     if cv2.waitKey(1) == ord('q'):
-        break
+        break"""
         
 
 # find intercept of horizontal lines with mean vertical line
@@ -140,7 +143,7 @@ for i in range(len(lines)):
         intersection_x = (y_intercept_avg_vert_line - y_intercept_horizontal_line) / (line_slopes[i] - avg_slope)
         intersection_y = ((avg_slope * intersection_x) + y_intercept_avg_vert_line)
         intersections.append([intersection_x, intersection_y])
-        cv2.circle(cdst, (int(intersection_x), int(intersection_y)), 5, (0, 255, 0), 10)
+        #cv2.circle(cdst, (int(intersection_x), int(intersection_y)), 5, (0, 255, 0), 10)
 
 
 while True:
@@ -149,15 +152,41 @@ while True:
         break
 
 # DBSCAN
-intercept_clusters = cluster.DBSCAN(eps=0.4, min_samples=3).fit_predict(np.array(intersections))
-print(intercept_clusters)
+intercept_clusters = cluster.DBSCAN(eps=EPSILON, min_samples=1).fit(np.array(intersections))
+print(intercept_clusters.labels_)
 
 for i in range(len(intersections)):
-    s = set()
+    if intercept_clusters.labels_[i] >= 0:
+        cv2.circle(cdst, (int(intersections[i][0]), int(intersections[i][1])), 5, (int(intercept_clusters.labels_[i]*21), 0, 0), 10)
 
-    if intercept_clusters[i] >= 0 and intercept_clusters[i] not in s:
-        cv2.circle(cdst, (int(intersections[i][0]), int(intersections[i][1])), 5, (255, 255, 255), 10)
-        s.add(intercept_clusters[i])
+        
+while True:
+    cv2.imshow('test', cdst)
+    if cv2.waitKey(1) == ord('q'):
+        break
+
+cluster_dict = dict()
+merged_points = dict()
+
+for i in range(len(intercept_clusters.labels_)):
+    if intercept_clusters.labels_[i] not in cluster_dict:
+        cluster_dict[intercept_clusters.labels_[i]] = [intersections[i]]
+    else:
+        cluster_dict[intercept_clusters.labels_[i]].append(intersections[i])
+
+for c in cluster_dict:
+    point_sum = [0.0, 0.0]
+    
+    for p in cluster_dict[c]:
+        point_sum[0] += p[0]
+        point_sum[1] += p[1]
+    
+    point_average = [(point_sum[0]/len(cluster_dict[c])), (point_sum[1]/len(cluster_dict[c]))]
+    merged_points[c] = point_average
+
+
+for i in merged_points:
+    cv2.circle(cdst, (np.int_(merged_points[i][0]), np.int_(merged_points[i][1])), 5, (255, 244, 244), 5)
 
 while True:
     cv2.imshow('test', cdst)
