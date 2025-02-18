@@ -18,7 +18,9 @@ print("begin")
 edges = cv2.Canny(img,100,200)
 cdst = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
 
-# Perform probabilistic hough transform and draw lines into the image
+# -------------------------------------------------------- Derek TODO:
+
+# (FUNCTION) Perform probabilistic hough transform and draw lines into the image
 lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 50, None, 50, 10)
 print(lines)
 if lines is not None:
@@ -36,7 +38,7 @@ while True:
 
 
 
-# Agglomerative Clustering: (sort into vertical & horizontal lines)
+# (FUNCTION) Agglomerative Clustering: (sort into vertical & horizontal lines)
 
 # make model parameters
 agglom_model = cluster.AgglomerativeClustering(n_clusters=2, metric='euclidean', memory=None, connectivity=None, 
@@ -68,17 +70,17 @@ print(len(slope_clusters))
 
 
 
-# calculate the mean x and mean y
+# (DBSCAN FUNCTION) calculate the mean x and mean y
 sum_x = 0
 sum_y = 0
 num_directional_lines = 0
-line_direction = 0
+LINE_DIRECTION = 0
 
 # track max and min x value and/or y value
 
 for i in range(len(lines)):
     # only counts vertical or horizontal lines (depending on set to 0 or 1)
-    if slope_clusters[i] == line_direction:
+    if slope_clusters[i] == LINE_DIRECTION:
         cv2.line(cdst, (lines[i][0][0], lines[i][0][1]), (lines[i][0][2], lines[i][0][3]), (255,0,0), 3, cv2.LINE_AA)
         sum_x += lines[i][0][0] + lines[i][0][2]
         sum_y += lines[i][0][1] + lines[i][0][3]
@@ -100,11 +102,14 @@ while True:
 
 # print("line slopes")
 print(line_slopes)
-# average slope 
+
+# -------------------------------------------------------- Phillip TODO:
+
+# (DBSCAN FUNCTION) average slope 
 avg_angle = 0
 for i in range(len(lines)):
     # only counts vertical or horizontal lines (depending on set to 0 or 1)
-    if slope_clusters[i] == line_direction:
+    if slope_clusters[i] == LINE_DIRECTION:
         avg_angle += math.atan(line_slopes[i])
 
 
@@ -137,7 +142,7 @@ intersections = []
 
 for i in range(len(lines)):
     # only counts vertical or horizontal lines (depending on set to 0 or 1)
-    if slope_clusters[i] != line_direction:
+    if slope_clusters[i] != LINE_DIRECTION:
         # b = y - mx
         y_intercept_horizontal_line = lines[i][0][1] - (line_slopes[i] * lines[i][0][0])
         intersection_x = (y_intercept_avg_vert_line - y_intercept_horizontal_line) / (line_slopes[i] - avg_slope)
@@ -152,6 +157,7 @@ while True:
         break
 
 # DBSCAN
+# (FUNCTION)
 intercept_clusters = cluster.DBSCAN(eps=EPSILON, min_samples=1).fit(np.array(intersections))
 print(intercept_clusters.labels_)
 
@@ -165,8 +171,8 @@ while True:
     if cv2.waitKey(1) == ord('q'):
         break
 
+# (FUNCTION)
 cluster_dict = dict()
-merged_points = dict()
 
 for i in range(len(intercept_clusters.labels_)):
     if intercept_clusters.labels_[i] not in cluster_dict:
@@ -174,6 +180,8 @@ for i in range(len(intercept_clusters.labels_)):
     else:
         cluster_dict[intercept_clusters.labels_[i]].append(intersections[i])
 
+# (FUNCTION) Calculate the average point and slope for each cluster.
+merged_points = dict()
 for c in cluster_dict:
     point_sum = [0.0, 0.0]
     
