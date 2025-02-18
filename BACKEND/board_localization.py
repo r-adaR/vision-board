@@ -6,12 +6,13 @@ from matplotlib import image as im
 import sklearn.cluster as cluster
 from hough_transform import hough
 from agglom_functions import agglom_cluster, calc_slopes
+from dbscan_functions import cacl_mean_point, calc_mean_slope, calc_intersections
 
 # Enumeration
 EPSILON = 60
 
 # Read image as grayscale.
-img = cv2.imread('vision-board/BACKEND/easy_0.png', cv2.IMREAD_GRAYSCALE)
+img = cv2.imread('vision-board/BACKEND/checkboard.jpg', cv2.IMREAD_GRAYSCALE)
 assert img is not None, "File not found."
 
 print("begin")
@@ -30,105 +31,44 @@ while True:
     if cv2.waitKey(1) == ord('q'):
         break
 
-
-# Calc slopes
-line_slopes = calc_slopes(lines)
-
-# Calculate vertical/horizontal line clusters 
-slope_clusters = agglom_cluster(lines, line_slopes)
+# AGGLOMERATIVE CLUSTERING PREP FUNCTIONS
+line_slopes = calc_slopes(lines) # Calc slopes
+slope_clusters = agglom_cluster(lines, line_slopes) # Calculate vertical/horizontal line clusters 
 
 
-print(slope_clusters)
-print(len(slope_clusters))
+# DBSCAN PREP FUNCTIONS
+LINE_DIRECTION = 0 # line direction = 0 
+num_directional_lines = 0 # used to count number of lines that are equal to LINE_DIRECTION 
+
+# Calculates the mean point in the image
+avg_x, avg_y, num_directional_lines = cacl_mean_point(lines, slope_clusters, cdst, LINE_DIRECTION, num_directional_lines) 
+
+# Caclulates the mean slope of all of the LINE_DIRECTION = 0 lines 
+avg_slope_0 = calc_mean_slope(lines, slope_clusters, 0, line_slopes, num_directional_lines) 
+# Caclulates the mean slope of all of the LINE_DIRECTION = 1 lines 
+avg_slope_1 = calc_mean_slope(lines, slope_clusters, 1, line_slopes, num_directional_lines) 
+
+print(avg_slope_0)
+print(avg_slope_1)
 
 
-
-
-# (DBSCAN FUNCTION) calculate the mean x and mean y
-sum_x = 0
-sum_y = 0
-num_directional_lines = 0
-LINE_DIRECTION = 0
-
-# track max and min x value and/or y value
-
-for i in range(len(lines)):
-    # only counts vertical or horizontal lines (depending on set to 0 or 1)
-    if slope_clusters[i] == LINE_DIRECTION:
-        cv2.line(cdst, (lines[i][0][0], lines[i][0][1]), (lines[i][0][2], lines[i][0][3]), (255,0,0), 3, cv2.LINE_AA)
-        sum_x += lines[i][0][0] + lines[i][0][2]
-        sum_y += lines[i][0][1] + lines[i][0][3]
-        num_directional_lines += 1
-
-avg_x = int(sum_x / (2 * num_directional_lines))
-avg_y = int(sum_y / (2 * num_directional_lines))
-
-
-
-# show image
-"""cv2.circle(cdst, (avg_x, avg_y), 5, (0, 255, 0), 10)
-while True:
-    cv2.imshow('test', cdst)
-    if cv2.waitKey(1) == ord('q'):
-        break"""
-
-
-
-# print("line slopes")
-print(line_slopes)
-
-# -------------------------------------------------------- Phillip TODO:
-
-# (DBSCAN FUNCTION) average slope 
-avg_angle = 0
-for i in range(len(lines)):
-    # only counts vertical or horizontal lines (depending on set to 0 or 1)
-    if slope_clusters[i] == LINE_DIRECTION:
-        avg_angle += math.atan(line_slopes[i])
-
-
-
-# avg_slope = avg_slope / (2 * num_directional_lines)
-avg_slope = math.tan(avg_angle / (num_directional_lines))
-
-print("AVERAGE SLOPE")
-print(avg_slope)
-
-
-#cv2.line(cdst, (avg_x, avg_y), (avg_x + 100, avg_y + int((avg_slope * 100)) ), (255,0,0), 5, cv2.LINE_AA)
-
-"""while True:
-    cv2.imshow('test', cdst)
-    if cv2.waitKey(1) == ord('q'):
-        break"""
-        
-
-# find intercept of horizontal lines with mean vertical line
-# y = mx + b
 
 # calculate y-intercept (b) of mean vertical line
 # b = y - mx
-y_intercept_avg_vert_line = avg_y - (avg_slope * avg_x)
+y_intercept_avg_vert_line = avg_y - (avg_slope_0 * avg_x)
+y_intercept_avg_horizontal_line = avg_y - (avg_slope_1 * avg_x)
 
 
-# calcualte y-intercept (b) for each horizontal line
-intersections = []
-
-for i in range(len(lines)):
-    # only counts vertical or horizontal lines (depending on set to 0 or 1)
-    if slope_clusters[i] != LINE_DIRECTION:
-        # b = y - mx
-        y_intercept_horizontal_line = lines[i][0][1] - (line_slopes[i] * lines[i][0][0])
-        intersection_x = (y_intercept_avg_vert_line - y_intercept_horizontal_line) / (line_slopes[i] - avg_slope)
-        intersection_y = ((avg_slope * intersection_x) + y_intercept_avg_vert_line)
-        intersections.append([intersection_x, intersection_y])
-        #cv2.circle(cdst, (int(intersection_x), int(intersection_y)), 5, (0, 255, 0), 10)
+# calculates the points of intersection between avg line (vertical & horizontal) & each actual line
+intersections, intersections_and_slope = calc_intersections(cdst, slope_clusters, LINE_DIRECTION, lines, line_slopes, y_intercept_avg_vert_line,y_intercept_avg_horizontal_line, avg_slope_0, avg_slope_1)
 
 
 while True:
     cv2.imshow('test', cdst)
     if cv2.waitKey(1) == ord('q'):
         break
+
+
 
 # DBSCAN
 # (FUNCTION)
@@ -144,6 +84,9 @@ while True:
     cv2.imshow('test', cdst)
     if cv2.waitKey(1) == ord('q'):
         break
+
+
+
 
 # (FUNCTION)
 cluster_dict = dict()
