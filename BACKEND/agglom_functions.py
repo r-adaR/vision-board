@@ -2,11 +2,7 @@ import sklearn.cluster as cluster
 import numpy as np
 
 
-
-
-
-
-def calc_slopes(lines):
+def calculate_slopes(lines):
     # convert line data (two x,y point values) into a slope value
     line_slopes = []
     for line in lines:
@@ -17,7 +13,6 @@ def calc_slopes(lines):
             line_slope = (line[0][1] - line[0][3]) / (line[0][0] - line[0][2])  
         line_slopes.append(line_slope)
     return line_slopes
-
 
 
 def agglom_cluster(lines, line_slopes):

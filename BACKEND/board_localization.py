@@ -5,14 +5,14 @@ from matplotlib import pyplot as plt
 from matplotlib import image as im
 import sklearn.cluster as cluster
 from hough_transform import hough
-from agglom_functions import agglom_cluster, calc_slopes
-from dbscan_functions import cacl_mean_point, calc_mean_slope, calc_intersections
+from agglom_functions import agglom_cluster, calculate_slopes
+from dbscan_functions import calculate_mean_point, calculate_mean_slope, calculate_intersections, build_cluster_dict, calculate_cluster_averages
 
 # Enumeration
 EPSILON = 60
 
 # Read image as grayscale.
-img = cv2.imread('vision-board/BACKEND/checkboard.jpg', cv2.IMREAD_GRAYSCALE)
+img = cv2.imread('easy_0.png', cv2.IMREAD_GRAYSCALE)
 assert img is not None, "File not found."
 
 print("begin")
@@ -32,7 +32,7 @@ while True:
         break
 
 # AGGLOMERATIVE CLUSTERING PREP FUNCTIONS
-line_slopes = calc_slopes(lines) # Calc slopes
+line_slopes = calculate_slopes(lines) # Calc slopes
 slope_clusters = agglom_cluster(lines, line_slopes) # Calculate vertical/horizontal line clusters 
 
 
@@ -41,12 +41,12 @@ LINE_DIRECTION = 0 # line direction = 0
 num_directional_lines = 0 # used to count number of lines that are equal to LINE_DIRECTION 
 
 # Calculates the mean point in the image
-avg_x, avg_y, num_directional_lines = cacl_mean_point(lines, slope_clusters, cdst, LINE_DIRECTION, num_directional_lines) 
+avg_x, avg_y, num_directional_lines = calculate_mean_point(lines, slope_clusters, cdst, LINE_DIRECTION, num_directional_lines) 
 
-# Caclulates the mean slope of all of the LINE_DIRECTION = 0 lines 
-avg_slope_0 = calc_mean_slope(lines, slope_clusters, 0, line_slopes, num_directional_lines) 
-# Caclulates the mean slope of all of the LINE_DIRECTION = 1 lines 
-avg_slope_1 = calc_mean_slope(lines, slope_clusters, 1, line_slopes, num_directional_lines) 
+#Calculates the mean slope of all of the LINE_DIRECTION = 0 lines 
+avg_slope_0 = calculate_mean_slope(lines, slope_clusters, 0, line_slopes, num_directional_lines) 
+# Calculates the mean slope of all of the LINE_DIRECTION = 1 lines 
+avg_slope_1 = calculate_mean_slope(lines, slope_clusters, 1, line_slopes, num_directional_lines) 
 
 print(avg_slope_0)
 print(avg_slope_1)
@@ -60,7 +60,7 @@ y_intercept_avg_horizontal_line = avg_y - (avg_slope_1 * avg_x)
 
 
 # calculates the points of intersection between avg line (vertical & horizontal) & each actual line
-intersections, intersections_and_slope = calc_intersections(cdst, slope_clusters, LINE_DIRECTION, lines, line_slopes, y_intercept_avg_vert_line,y_intercept_avg_horizontal_line, avg_slope_0, avg_slope_1)
+intersections, intersections_and_slope = calculate_intersections(cdst, slope_clusters, LINE_DIRECTION, lines, line_slopes, y_intercept_avg_vert_line,y_intercept_avg_horizontal_line, avg_slope_0, avg_slope_1)
 
 
 while True:
@@ -70,8 +70,7 @@ while True:
 
 
 
-# DBSCAN
-# (FUNCTION)
+# Perform DBSCAN and obtain clusters
 intercept_clusters = cluster.DBSCAN(eps=EPSILON, min_samples=1).fit(np.array(intersections))
 print(intercept_clusters.labels_)
 
@@ -86,29 +85,11 @@ while True:
         break
 
 
-
-
-# (FUNCTION)
-cluster_dict = dict()
-
-for i in range(len(intercept_clusters.labels_)):
-    if intercept_clusters.labels_[i] not in cluster_dict:
-        cluster_dict[intercept_clusters.labels_[i]] = [intersections[i]]
-    else:
-        cluster_dict[intercept_clusters.labels_[i]].append(intersections[i])
+# (FUNCTION) done
+cluster_dict = build_cluster_dict(intercept_clusters, intersections)
 
 # (FUNCTION) Calculate the average point and slope for each cluster.
-merged_points = dict()
-for c in cluster_dict:
-    point_sum = [0.0, 0.0]
-    
-    for p in cluster_dict[c]:
-        point_sum[0] += p[0]
-        point_sum[1] += p[1]
-    
-    point_average = [(point_sum[0]/len(cluster_dict[c])), (point_sum[1]/len(cluster_dict[c]))]
-    merged_points[c] = point_average
-
+merged_points = calculate_cluster_averages(cluster_dict)
 
 for i in merged_points:
     cv2.circle(cdst, (np.int_(merged_points[i][0]), np.int_(merged_points[i][1])), 5, (255, 244, 244), 5)
