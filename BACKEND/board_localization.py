@@ -15,6 +15,7 @@ LINE_DIRECTION = 0 # line direction = 0
 # Read image as grayscale.
 img = cv2.imread('easy_0.png', cv2.IMREAD_GRAYSCALE)
 assert img is not None, "File not found."
+height, width = img.shape
 
 # Perform canny edge detection.
 edges = cv2.Canny(img,100,200)
@@ -92,6 +93,21 @@ for c in merged_points:
 
 for i in merged_points:
     cv2.circle(cdst, (np.int_(merged_points[i][0][0]), np.int_(merged_points[i][0][1])), 5, (255, 244, 244), 5)
+
+print(f"height = {height}")
+print(f"width = {width}")
+
+for i in merged_points:
+    point, slope = merged_points[i][POINT], merged_points[i][SLOPE]
+
+    if slope == float("inf"):
+        pt1 = (point[0], 0)
+        pt2 = (point[0], height)
+    else:
+        pt1 = (0, int(point[1] - slope * point[0]))
+        pt2 = (width, int(point[1] + slope * (width - point[0])))
+
+    cv2.line(cdst, pt1, pt2, (255, 255, 255), 2)
 
 while True:
     cv2.imshow('test', cdst)
