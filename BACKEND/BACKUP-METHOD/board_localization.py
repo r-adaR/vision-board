@@ -36,10 +36,9 @@ slope_clusters = agglom_cluster(lines, line_slopes) # Calculate vertical/horizon
 
 
 # DBSCAN PREP FUNCTIONS
-num_directional_lines = 0 # used to count number of lines that are equal to LINE_DIRECTION 
 
 # Calculates the mean point in the image
-avg_x, avg_y, num_directional_lines = calculate_mean_point(lines, slope_clusters, cdst, LINE_DIRECTION, num_directional_lines) 
+avg_x, avg_y, num_directional_lines = calculate_mean_point(lines, slope_clusters, cdst, LINE_DIRECTION) 
 
 #Calculates the mean slope of all of the LINE_DIRECTION = 0 lines 
 avg_slope_0, lines_with_slopes_0 = calculate_mean_slope(lines, slope_clusters, 0, line_slopes, num_directional_lines) 
@@ -108,6 +107,15 @@ for i in merged_points:
         pt2 = (width, int(point[1] + slope * (width - point[0])))
 
     cv2.line(cdst, pt1, pt2, (255, 255, 255), 2)
+
+direction1 = []
+direction2 = []
+
+for m in merged_points:
+    direction1.append(m) if merged_points[m][SLOPE] < 0 else direction2.append(m)
+        
+print(direction1)
+print(direction2)
 
 while True:
     cv2.imshow('test', cdst)

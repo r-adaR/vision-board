@@ -4,9 +4,8 @@ import cv2
 POINT = 0
 SLOPE = 1
 
-def calculate_mean_point(lines, slope_clusters, cdst, LINE_DIRECTION, num_directional_lines):
-    sum_x = 0
-    sum_y = 0
+def calculate_mean_point(lines, slope_clusters, cdst, LINE_DIRECTION):
+    sum_x = sum_y = num_directional_lines = 0
 
     # track max and min x value and/or y value
 
