@@ -1284,7 +1284,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5702193241860443604, guid: 1ec432db9d0c8d74fba8ced23fbd21a5, type: 3}
       propertyPath: m_tweenTime
-      value: 1
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 8518807371104622262, guid: 1ec432db9d0c8d74fba8ced23fbd21a5, type: 3}
       propertyPath: m_SortingOrder
