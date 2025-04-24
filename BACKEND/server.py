@@ -1,17 +1,20 @@
 import socket
 
-HOST_ADDRESS = "127.0.0.1"
+# Establish localhost and port.
+HOST = "127.0.0.1"
 PORT = 8181
 
-with socket.socket() as server:
-    server.bind((HOST_ADDRESS, PORT))
-    server.listen()
-    connection, address = server.accept()
-    
-    with connection:
-        print(f"Connected by {address}")
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    # Bind the socket to the address and port and add a listener to accept connections.
+    s.bind((HOST, PORT))
+    s.listen(1)
+    conn, addr = s.accept()
+
+    with conn:
+        print('Connected by', addr)
         while True:
-            data = connection.recv(1024)
+            # Echo data received back to the client (TODO: Change to send board data).
+            data = conn.recv(1024)
             if not data:
                 break
-            connection.sendall(data)
+            conn.sendall(data)
