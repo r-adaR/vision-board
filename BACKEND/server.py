@@ -15,6 +15,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         while True:
             # Echo data received back to the client (TODO: Change to send board data).
             data = conn.recv(1024)
+            if data == b"SCF":
+                break
+            if data == b"RGS":
+                break
             if not data:
                 break
             conn.sendall(data)
