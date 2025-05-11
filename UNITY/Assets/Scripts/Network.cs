@@ -1,15 +1,9 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
-using System.IO;
-using System.Drawing;
-using Unity.VisualScripting;
 using UnityEngine;
-using static UnityEditor.Experimental.AssetDatabaseExperimental.AssetDatabaseCounters;
-using System.Runtime.InteropServices.ComTypes;
 using UnityEngine.UI;
-using System;
+using static GameState;
 
 public class Client : MonoBehaviour
 {
@@ -40,9 +34,6 @@ public class Client : MonoBehaviour
         stream.Write(bufferWrite, 0, bufferWrite.Length);
         byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
 
-        // int bytesRead = stream.Read(buffer, 0, buffer.Length);
-
-
         int totalBytesRead = 0;
         do
         {
@@ -52,6 +43,15 @@ public class Client : MonoBehaviour
         while (stream.DataAvailable);
 
         string data = Encoding.ASCII.GetString(buffer, 0, totalBytesRead);
+
+        GameState.Side[,] boardState = new GameState.Side[5,5];
+        for (int i = 0; i < boardState.Length; i++)
+        {
+            for (int j = 0; j < boardState.Length; j++)
+            {
+            }
+        }
+
         print(data);
 
     }
