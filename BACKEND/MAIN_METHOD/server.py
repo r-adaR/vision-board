@@ -23,11 +23,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         while True:
             # read frame from camera
             ret, frame = camera.read()
-            if not ret:
-                break
 
-            data = conn.recv(200000)
+            data = conn.recv(1024)
             if data == b"SCF":
+                if not ret:
+                    print("Failed to read frame from camera.")
+                    break
+
                 print("Camera frame requested.")
                 resized_img = cv.resize(frame, (320, 240))
                 img_encode = cv.imencode('.jpg', resized_img)[1].tobytes()
@@ -37,7 +39,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     f.write(base64_bytes)
                 conn.sendall(img_encode)
             if data == b"RGS":
-                boardState = vision_board_reader(frame).tobytes()
+                try:
+                    boardState = vision_board_reader(frame).tobytes()
+                except Exception as e:
+                    print(f"Error reading board: {e}")
+                    boardState = b"ERROR"
                 conn.sendall(boardState)
             if data == b"QUIT":
                 break

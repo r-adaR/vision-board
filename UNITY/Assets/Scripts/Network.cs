@@ -40,13 +40,10 @@ public class Client : MonoBehaviour
         stream.Write(bufferWrite, 0, bufferWrite.Length);
         byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
 
-        int totalBytesRead = 0;
-        do
-        {
-            int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
-            totalBytesRead += bytesRead;
-        }
-        while (stream.DataAvailable);
+        int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
+
+        string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+        print(data);
 
     }
 
@@ -110,6 +107,11 @@ public class Client : MonoBehaviour
             endCameraFeed();
         }
 
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            getBoardState();
+        }
+
         if (Input.GetKeyDown(KeyCode.Q))
         {
             closeConnection();
@@ -121,6 +123,11 @@ public class Client : MonoBehaviour
 
     void closeConnection()
     {
+        NetworkStream stream = tcpClient.GetStream();
+
+        byte[] bufferWrite = Encoding.ASCII.GetBytes("QUIT");
+        stream.Write(bufferWrite, 0, bufferWrite.Length);
+
         tcpClient.Close();
     }
 
