@@ -14,7 +14,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     conn, addr = s.accept()
 
     # open camera
-    camera = cv.VideoCapture(1)
+    camera = cv.VideoCapture(0)
     if not camera.isOpened():
         raise Exception("Could not open camera.")
     
@@ -30,8 +30,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             if data == b"SCF":
                 print("Camera frame requested.")
                 #img_encode = cv.imencode('.jpg', frame)[1].tobytes()
-                img = cv.imread("training_data/coyote.jpg")
-                resized_img = cv.resize(img, (320, 240))
+                # frame = cv.imread("training_data/coyote.jpg")
+                resized_img = cv.resize(frame, (320, 240))
                 img_encode = cv.imencode('.jpg', resized_img)[1].tobytes()
                 
                 base64_bytes = base64.b64encode(img_encode)

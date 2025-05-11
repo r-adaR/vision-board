@@ -17,7 +17,7 @@ public class Client : MonoBehaviour
     public int port = 8181;
     IPAddress address;
     TcpClient tcpClient = new TcpClient();
-    bool running;
+    bool running = false;
     Texture2D tex;
     [SerializeField] private Image testimg;
 
@@ -31,18 +31,28 @@ public class Client : MonoBehaviour
         Info();
     }
 
+
+    private void Update()
+    {
+
+        if (running)
+        {
+            Communication();
+        }
+
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            tcpClient.Close();
+            running= false;
+        }
+    }
+
     void Info()
     {
         address = IPAddress.Parse(host);
         tcpClient.Connect(new IPEndPoint(address, port));
 
-        running = false;
-        Communication();
-        while (running)
-        {
-            Communication();
-        }
-        tcpClient.Close();
+        running = true;
     }
 
     void Communication()
@@ -64,9 +74,9 @@ public class Client : MonoBehaviour
         tex.LoadImage(buffer);
         testimg.sprite = Sprite.Create(tex, new Rect(0,0,320,240), Vector2.zero);
 
-        byte[] b = Encoding.ASCII.GetBytes("q");
+        /* byte[] b = Encoding.ASCII.GetBytes("q");
         stream.Write(b, 0, b.Length);
 
-        running = false;
+         running = false; */
     }
 }
