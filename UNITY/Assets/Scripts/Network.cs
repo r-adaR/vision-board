@@ -17,7 +17,7 @@ public class Client : MonoBehaviour
     public int port = 8181;
     IPAddress address;
     TcpClient tcpClient = new TcpClient();
-    bool running = false;
+    bool cameraFeedActive = false;
     Texture2D tex;
     [SerializeField] private Image testimg;
 
@@ -25,37 +25,48 @@ public class Client : MonoBehaviour
     void Start()
     {
         tex = new Texture2D(320, 240);
-        //ThreadStart t = new ThreadStart(Info);
-        //Thread net_thread = new Thread(t);
-        //net_thread.Start();
-        Info();
-    }
-
-
-    private void Update()
-    {
-
-        if (running)
-        {
-            Communication();
-        }
-
-        if (Input.GetKeyDown(KeyCode.Q))
-        {
-            tcpClient.Close();
-            running= false;
-        }
-    }
-
-    void Info()
-    {
         address = IPAddress.Parse(host);
         tcpClient.Connect(new IPEndPoint(address, port));
-
-        running = true;
     }
 
-    void Communication()
+
+
+
+    void getBoardState()
+    {
+        NetworkStream stream = tcpClient.GetStream();
+
+        byte[] bufferWrite = Encoding.ASCII.GetBytes("RGS");
+        stream.Write(bufferWrite, 0, bufferWrite.Length);
+        byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
+
+        int totalBytesRead = 0;
+        do
+        {
+            int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
+            totalBytesRead += bytesRead;
+        }
+        while (stream.DataAvailable);
+
+    }
+
+
+
+    void startCameraFeed()
+    {
+        cameraFeedActive = true;
+
+    }
+
+    void endCameraFeed()
+    {
+        cameraFeedActive = false;
+
+    }
+
+
+
+    void displayCameraFeed()
     {
         NetworkStream stream = tcpClient.GetStream();
 
@@ -72,11 +83,48 @@ public class Client : MonoBehaviour
         while (stream.DataAvailable);
 
         tex.LoadImage(buffer);
-        testimg.sprite = Sprite.Create(tex, new Rect(0,0,320,240), Vector2.zero);
+        testimg.sprite = Sprite.Create(tex, new Rect(0, 0, 320, 240), Vector2.zero);
 
-        /* byte[] b = Encoding.ASCII.GetBytes("q");
-        stream.Write(b, 0, b.Length);
-
-         running = false; */
     }
+
+
+
+
+    private void Update()
+    {
+
+        if (cameraFeedActive)
+        {
+            displayCameraFeed();
+        }
+
+
+        if (Input.GetKeyDown(KeyCode.S))
+        {
+            startCameraFeed();
+        }
+
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            endCameraFeed();
+        }
+
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            closeConnection();
+        }
+
+
+    }
+
+
+    void closeConnection()
+    {
+        tcpClient.Close();
+    }
+
+
+
+
 }
