@@ -19,11 +19,15 @@ public class GameState : MonoBehaviour
     public Tuple<int, int> bonusLoc { get; private set; }
     public Side currentPlayer { get; private set; }
 
+    public int turn_number { get; private set; } = 1;
+    public int x_score { get; private set; } = 0;
+    public int x_bonuses { get; private set; } = 0; // ex: if x_bonuses == 1 --> player x should get 50 extra points
+    public int o_score { get; private set; } = 0;
+    public int o_bonuses { get; private set; } = 0; // ex: if o_bonuses == 2 --> player o should get 100 extra points
 
-    public int x_score { get; private set; }
-    public int x_bonuses { get; private set; } // ex: if x_bonuses == 1 --> player x should get 50 extra points
-    public int o_score {  get; private set; }
-    public int o_bonuses { get; private set; } // ex: if o_bonuses == 2 --> player o should get 100 extra points
+
+    public bool gameOver { get; private set; } = false;
+
 
     public static GameState instance { get; private set; }
 
@@ -34,27 +38,94 @@ public class GameState : MonoBehaviour
 
         board = new Side[5, 5];
         errors = new bool[5, 5];
-        bonusLoc = GetRandomEmptySquare();
+        bonusLoc = GetRandomEmptySquare(this.board);
 
-        x_score = 0;
-        o_score = 0;
+        currentPlayer = Side.X;
     }
+
+
+    // GAME STATE UPDATE FUNCTIONS //
+    // These functions are not really as unit-testable on their own like the helper functions because they rely on the objects in this class
+
+    /// <summary>
+    /// Sets a tile in the 2D array "board" at coordinates y, x with side "side"
+    /// </summary>
+    /// <param name="y"></param>
+    /// <param name="x"></param>
+    /// <param name="side"></param>
+    public void SetTile(int y, int x, Side side)
+    {
+        if (board[y,x] != Side.NONE)
+        {
+            Debug.LogError("You are setting a piece onto a non-empty tile. This should NOT happen.");
+            return;
+        }
+
+        board[y, x] = side;
+        if (bonusLoc.Item1 == y && bonusLoc.Item2 == x)
+        {
+            if (side == Side.X) x_bonuses++;
+            else if (side == Side.O) o_bonuses++;
+        }
+    }
+
+
+    /// <summary>
+    /// returns the coordinates of the first new piece and the side at those coordinates as (item1 = y, item2 = x, item3 = side)
+    /// </summary>
+    /// <param name="newBoard"></param>
+    /// <returns></returns>
+    public Tuple<int, int, Side> GetFirstNewPiece(Side[,] newBoard)
+    {
+        if (ThereAreErrors(GetErrors(this.board, newBoard, currentPlayer)))
+        {
+            Debug.LogWarning("Get first new piece result is unpredictable. Errors were detected in new board state. Returning null.");
+            return null;
+        }
+        for (int y = 0; y < 5; y++)
+            for (int x = 0; x < 5; x++)
+                if (newBoard[y, x] != this.board[y, x]) return new Tuple<int, int, Side>(y, x, newBoard[y, x]);
+
+        Debug.LogWarning("No new pieces detected when using GetFirstNewPiece. Returning null.");
+        return null;
+    }
+
+    /// <summary>
+    /// increment the turn counter, change the current player, and find a new spot for the bonus. If there are no new moves: declares the game is over.
+    /// </summary>
+    public void AdvanceTurn()
+    {
+        if (turn_number == 25)
+        {
+            gameOver = true; // the visual side of things will handle what to do from here
+        }
+        else
+        {
+            turn_number++;
+            bonusLoc = GetRandomEmptySquare(this.board);
+            if (currentPlayer == Side.X) currentPlayer = Side.O;
+            else currentPlayer = Side.X;
+        }
+    }
+
 
 
     // HELPER FUNCTIONS //
 
 
     /// <summary>
-    /// gets a random empty square on the board
+    /// gets a random empty square on the board. RETURNS NULL if there are no empty squares
     /// </summary>
     /// <returns></returns>
-    public Tuple<int, int> GetRandomEmptySquare()
+    public Tuple<int, int> GetRandomEmptySquare(Side[,] board)
     {
         List<Tuple<int, int>> l = new List<Tuple<int, int>>();
         for (int y = 0; y < 5; y++)
             for (int x = 0; x < 5; x++)
                 if (board[y, x] == Side.NONE)
                     l.Add(new Tuple<int, int>(y, x));
+
+        if (l.Count == 0) return null;
 
         return l[UnityEngine.Random.Range(0, l.Count)];
     }
@@ -64,10 +135,11 @@ public class GameState : MonoBehaviour
     /// returns a multidimensional array of booleans showing if any squares on 
     /// the new board state would be the result of an illegal move (replacing squares, wrong player making a move, etc.)
     /// </summary>
+    /// <param name="board"></param>
     /// <param name="newBoard"></param>
     /// <param name="currentPlayer"></param>
     /// <returns></returns>
-    public bool[,] GetErrors(Side[,] newBoard, Side currentPlayer)
+    public bool[,] GetErrors(Side[,] board, Side[,] newBoard, Side currentPlayer)
     {
 
         bool[,] errorArray = new bool[5, 5];
@@ -114,9 +186,9 @@ public class GameState : MonoBehaviour
     /// checks to see if there are any errors saved into the errors array in GameState
     /// </summary>
     /// <returns></returns>
-    public bool ThereAreErrors()
+    public bool ThereAreErrors(bool[,] errorArray)
     {
-        foreach (bool item in errors)
+        foreach (bool item in errorArray)
         {
             if (item) return true;
         }
@@ -125,14 +197,14 @@ public class GameState : MonoBehaviour
 
 
     /// <summary>
-    /// updates a player's score depending on which side you want to check
+    /// returns a player's score from a side of a given board
     /// </summary>
-    public void UpdateScore(Side side)
+    public int GetScore(Side side, Side[,] board, bool includeBonuses)
     {
         if (side == Side.NONE)
         {
             Debug.LogError("side passed in was NONE!");
-            return;
+            return -1;
         }
 
         // we only care about updating the score for the one side we passed in
@@ -202,12 +274,113 @@ public class GameState : MonoBehaviour
             if (currCount >= 3) newScore += 100 + (100 * (currCount - 3));
         }
 
+        // each topLeft->bottomRight diagonal
+        for (int i=2; i>=0; i--)
+        {
+            int currCount = 0;
+            int x = 0;
+            for (int y = i; x < 5 && y < 5; x++, y++)
+            {
+                if (board[y, x] == side)
+                {
+                    currCount++;
+                }
+                else
+                {
+                    if (currCount >= 3)
+                    {
+                        newScore += 100 + (100 * (currCount - 3));
+                        continue;
+                    }
+                    else
+                    {
+                        currCount = 0;
+                    }
+                }
+            }
+            if (currCount >= 3) newScore += 100 + (100 * (currCount - 3));
+        }
+        for (int i = 2; i > 0; i--)
+        {
+            int currCount = 0;
+            int y = 0;
+            for (int x = i; x < 5 && y < 5; x++, y++)
+            {
+                if (board[y, x] == side)
+                {
+                    currCount++;
+                }
+                else
+                {
+                    if (currCount >= 3)
+                    {
+                        newScore += 100 + (100 * (currCount - 3));
+                        continue;
+                    }
+                    else
+                    {
+                        currCount = 0;
+                    }
+                }
+            }
+            if (currCount >= 3) newScore += 100 + (100 * (currCount - 3));
+        }
 
-        // TODO tally up score from both bottomRight->topLeft and topRight->bottomLeft diagonal directions
+        // each topRight->bottomLeft diagonal
+        for (int i = 2; i < 5; i++)
+        {
+            int currCount = 0;
+            int x = 0;
+            for (int y = i; x < 5 && y > 0; x++, y--)
+            {
+                if (board[y, x] == side)
+                {
+                    currCount++;
+                }
+                else
+                {
+                    if (currCount >= 3)
+                    {
+                        newScore += 100 + (100 * (currCount - 3));
+                        continue;
+                    }
+                    else
+                    {
+                        currCount = 0;
+                    }
+                }
+            }
+            if (currCount >= 3) newScore += 100 + (100 * (currCount - 3));
+        }
+        for (int i = 2; i > 0; i--)
+        {
+            int currCount = 0;
+            int y = 4;
+            for (int x = i; x < 5 && y > 0; x++, y--)
+            {
+                if (board[y, x] == side)
+                {
+                    currCount++;
+                }
+                else
+                {
+                    if (currCount >= 3)
+                    {
+                        newScore += 100 + (100 * (currCount - 3));
+                        continue;
+                    }
+                    else
+                    {
+                        currCount = 0;
+                    }
+                }
+            }
+            if (currCount >= 3) newScore += 100 + (100 * (currCount - 3));
+        }
 
 
-        if (side == Side.X) x_score = newScore + (x_bonuses * 50);
-        else o_score = newScore + (o_bonuses * 50);
+        if (side == Side.X) return newScore + (includeBonuses ? x_bonuses * 50 : 0);
+        else return newScore + (includeBonuses ? o_bonuses * 50 : 0);
     }
 
 }
