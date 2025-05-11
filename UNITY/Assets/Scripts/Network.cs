@@ -40,9 +40,18 @@ public class Client : MonoBehaviour
         stream.Write(bufferWrite, 0, bufferWrite.Length);
         byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
 
-        int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
+        // int bytesRead = stream.Read(buffer, 0, buffer.Length);
 
-        string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+
+        int totalBytesRead = 0;
+        do
+        {
+            int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
+            totalBytesRead += bytesRead;
+        }
+        while (stream.DataAvailable);
+
+        string data = Encoding.ASCII.GetString(buffer, 0, totalBytesRead);
         print(data);
 
     }

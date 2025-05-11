@@ -30,7 +30,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     print("Failed to read frame from camera.")
                     break
 
-                print("Camera frame requested.")
+                # print("Camera frame requested.")
                 resized_img = cv.resize(frame, (320, 240))
                 img_encode = cv.imencode('.jpg', resized_img)[1].tobytes()
                 
@@ -40,6 +40,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 conn.sendall(img_encode)
             if data == b"RGS":
                 try:
+                    boardState = vision_board_reader(frame)
+
+                    
+
+                    print(boardState)
                     boardState = vision_board_reader(frame).tobytes()
                 except Exception as e:
                     print(f"Error reading board: {e}")
