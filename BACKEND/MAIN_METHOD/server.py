@@ -1,7 +1,7 @@
 import socket
 import cv2 as cv
 import base64
-from VisionBoard import vision_board_reader
+from VisionBoard import vision_board_reader, BoardReadError
 
 # Establish localhost and port.
 HOST = "127.0.0.1"
@@ -38,17 +38,22 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 with open("output.txt", "wb") as f:
                     f.write(base64_bytes)
                 conn.sendall(img_encode)
+
             if data == b"RGS":
                 try:
-                    boardState = vision_board_reader(frame)
+                    board = vision_board_reader(frame)
 
-                    
+                    for i in range(len(board)):
+                        for j in range(len(board[i])):
+                            if board[i][j] == '':
+                                board[i][j] = 'E'
 
-                    print(boardState)
-                    boardState = vision_board_reader(frame).tobytes()
-                except Exception as e:
-                    print(f"Error reading board: {e}")
+                    boardStateString = "".join(board.flatten())
+                    boardState = boardStateString.tobytes()
+                except BoardReadError as e:
+                    print(e)
                     boardState = b"ERROR"
+                    
                 conn.sendall(boardState)
             if data == b"QUIT":
                 break
