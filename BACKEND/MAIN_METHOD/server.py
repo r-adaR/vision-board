@@ -14,17 +14,17 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     conn, addr = s.accept()
 
     # open camera
-    # camera = cv.VideoCapture(1)
-    # if not camera.isOpened():
-    #     raise Exception("Could not open camera.")
+    camera = cv.VideoCapture(1)
+    if not camera.isOpened():
+        raise Exception("Could not open camera.")
     
     with conn:
         print('Connected by', addr)
         while True:
             # read frame from camera
-            # ret, frame = camera.read()
-            # if not ret:
-            #     break
+            ret, frame = camera.read()
+            if not ret:
+                break
 
             data = conn.recv(200000)
             if data == b"SCF":
@@ -42,7 +42,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 # chunk_size = 4096  # 4 KB chunks
                 # for i in range(0, len(base64_bytes), chunk_size):
                 #     conn.sendall(base64_bytes[i:i+chunk_size])
-                conn.sendall(base64_bytes)
+                conn.sendall(img_encode)
             if data == b"RGS":
                 boardState = vision_board_reader(frame).tobytes()
                 conn.sendall(boardState)
@@ -54,4 +54,4 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             #     conn.sendall("incorrect protocol?")
 
 
-    #camera.release()
+    camera.release()
