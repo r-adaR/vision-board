@@ -44,15 +44,43 @@ public class Client : MonoBehaviour
 
         string data = Encoding.ASCII.GetString(buffer, 0, totalBytesRead);
 
-        GameState.Side[,] boardState = new GameState.Side[5,5];
-        for (int i = 0; i < boardState.Length; i++)
+        if (data == "ERROR")
         {
-            for (int j = 0; j < boardState.Length; j++)
+            print("Could not read board");
+            return;
+        }
+
+        GameState.Side[,] boardState = new GameState.Side[5,5];
+        int count = 0;
+
+        for (int i = 0; i < 5; i++)
+        {
+            for (int j = 0; j < 5; j++)
             {
+                count = (i * 5) + j;
+
+               //print(data[count]);
+
+                if (data[count] == 'X')
+                {
+                    boardState[i, j] = GameState.Side.X;
+                    print(boardState[i, j]);
+                }
+                else if (data[count] == 'O')
+                {
+                    boardState[i, j] = GameState.Side.O;
+                    print(boardState[i, j]);
+                }
+                else
+                {
+                    boardState[i, j] = GameState.Side.NONE;
+                    print(boardState[i, j]);
+                }
             }
         }
 
         print(data);
+   
 
     }
 

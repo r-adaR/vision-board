@@ -49,7 +49,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                                 board[i][j] = 'E'
 
                     boardStateString = "".join(board.flatten())
-                    boardState = boardStateString.tobytes()
+                    boardState = boardStateString.encode("utf-8")
                 except BoardReadError as e:
                     print(e)
                     boardState = b"ERROR"
