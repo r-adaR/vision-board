@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
-using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
+using static GameState;
 
 public class Client : MonoBehaviour
 {
@@ -11,47 +11,164 @@ public class Client : MonoBehaviour
     public int port = 8181;
     IPAddress address;
     TcpClient tcpClient = new TcpClient();
-    bool running;
+    bool cameraFeedActive = false;
+    Texture2D tex;
+    [SerializeField] private Image testimg;
+
 
     void Start()
     {
-        print("Starting.");
-        ThreadStart t = new ThreadStart(Info);
-        Thread net_thread = new Thread(t);
-        net_thread.Start();
-    }
-
-    void Info()
-    {
+        tex = new Texture2D(320, 240);
         address = IPAddress.Parse(host);
-        print("Where.");
         tcpClient.Connect(new IPEndPoint(address, port));
-
-        running = false;
-        print("Running.");
-        Communication();
-        while (running)
-        {
-            Communication();
-        }
-        tcpClient.Close();
     }
 
-    void Communication()
+
+
+
+    void getBoardState()
     {
         NetworkStream stream = tcpClient.GetStream();
 
-        print("Connection successful?");
-
-        byte[] bufferWrite = Encoding.ASCII.GetBytes("Hello...");
+        byte[] bufferWrite = Encoding.ASCII.GetBytes("RGS");
         stream.Write(bufferWrite, 0, bufferWrite.Length);
-
         byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
 
-        int bytesRead = stream.Read(buffer, 0, tcpClient.ReceiveBufferSize);
-        string data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-        print(data);
+        int totalBytesRead = 0;
+        do
+        {
+            int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
+            totalBytesRead += bytesRead;
+        }
+        while (stream.DataAvailable);
 
-        running = false;
+        string data = Encoding.ASCII.GetString(buffer, 0, totalBytesRead);
+
+        if (data == "ERROR")
+        {
+            print("Could not read board");
+            return;
+        }
+
+        GameState.Side[,] boardState = new GameState.Side[5,5];
+        int count = 0;
+
+        for (int i = 0; i < 5; i++)
+        {
+            for (int j = 0; j < 5; j++)
+            {
+                count = (i * 5) + j;
+
+               //print(data[count]);
+
+                if (data[count] == 'X')
+                {
+                    boardState[i, j] = GameState.Side.X;
+                    print(boardState[i, j]);
+                }
+                else if (data[count] == 'O')
+                {
+                    boardState[i, j] = GameState.Side.O;
+                    print(boardState[i, j]);
+                }
+                else
+                {
+                    boardState[i, j] = GameState.Side.NONE;
+                    print(boardState[i, j]);
+                }
+            }
+        }
+
+        print(data);
+   
+
     }
+
+
+
+    void startCameraFeed()
+    {
+        cameraFeedActive = true;
+
+    }
+
+    void endCameraFeed()
+    {
+        cameraFeedActive = false;
+
+    }
+
+
+
+    void displayCameraFeed()
+    {
+        NetworkStream stream = tcpClient.GetStream();
+
+        byte[] bufferWrite = Encoding.ASCII.GetBytes("SCF");
+        stream.Write(bufferWrite, 0, bufferWrite.Length);
+        byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
+
+        int totalBytesRead = 0;
+        do
+        {
+            int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
+            totalBytesRead += bytesRead;
+        }
+        while (stream.DataAvailable);
+
+        tex.LoadImage(buffer);
+        testimg.sprite = Sprite.Create(tex, new Rect(0, 0, 320, 240), Vector2.zero);
+
+    }
+
+
+
+
+    private void Update()
+    {
+
+        if (cameraFeedActive)
+        {
+            displayCameraFeed();
+        }
+
+
+        if (Input.GetKeyDown(KeyCode.S))
+        {
+            startCameraFeed();
+        }
+
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            endCameraFeed();
+        }
+
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            getBoardState();
+        }
+
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            closeConnection();
+        }
+
+
+    }
+
+
+    void closeConnection()
+    {
+        NetworkStream stream = tcpClient.GetStream();
+
+        byte[] bufferWrite = Encoding.ASCII.GetBytes("QUIT");
+        stream.Write(bufferWrite, 0, bufferWrite.Length);
+
+        tcpClient.Close();
+    }
+
+
+
+
 }

@@ -11,6 +11,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         if inp == "q":
             break
         s.sendall(inp.encode("utf-8"))
-        data = s.recv(1024)
+        data = s.recv(400000)
         data_decoded = data.decode("utf-8")
         print(f"Received {data_decoded!r}")
