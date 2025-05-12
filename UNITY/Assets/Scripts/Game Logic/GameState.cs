@@ -29,11 +29,11 @@ public class GameState : MonoBehaviour
     public bool gameOver { get; private set; } = false;
 
 
-    public static GameState instance { get; private set; }
+    public static GameState game_instance { get; private set; }
 
     private void Awake()
     {
-        if (instance == null) instance = this;
+        if (game_instance == null) game_instance = this;
         else Destroy(gameObject);
 
         board = new Side[5, 5];
@@ -41,6 +41,8 @@ public class GameState : MonoBehaviour
         bonusLoc = GetRandomEmptySquare(this.board);
 
         currentPlayer = Side.X;
+
+        GameFlow.flow_instance.StartGame();
     }
 
 

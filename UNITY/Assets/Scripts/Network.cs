@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static GameState;
 
@@ -13,7 +14,24 @@ public class Client : MonoBehaviour
     TcpClient tcpClient = new TcpClient();
     bool cameraFeedActive = false;
     Texture2D tex;
-    [SerializeField] private Image testimg;
+
+    public static Client network_instance;
+    private Image targetImg;
+
+    private void Awake()
+    {
+        if (network_instance != null)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            network_instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+
+        SceneManager.sceneUnloaded += (scene) => { endCameraFeed(); targetImg = null; };
+    }
 
 
     void Start()
@@ -24,11 +42,24 @@ public class Client : MonoBehaviour
     }
 
 
-
-
-    void getBoardState()
+    private void OnApplicationQuit()
     {
-        NetworkStream stream = tcpClient.GetStream();
+        closeConnection();
+    }
+
+
+
+    public Side[,] getBoardState()
+    {
+        NetworkStream stream;
+        try
+        {
+            stream = tcpClient.GetStream();
+        } catch(System.InvalidOperationException e)
+        {
+            Debug.LogError("Invalid Operatoin Exception was thrown in getBoardState(). Stack: " + e.StackTrace);
+            return null;
+        }
 
         byte[] bufferWrite = Encoding.ASCII.GetBytes("RGS");
         stream.Write(bufferWrite, 0, bufferWrite.Length);
@@ -47,7 +78,7 @@ public class Client : MonoBehaviour
         if (data == "ERROR")
         {
             print("Could not read board");
-            return;
+            return null;
         }
 
         GameState.Side[,] boardState = new GameState.Side[5,5];
@@ -64,35 +95,37 @@ public class Client : MonoBehaviour
                 if (data[count] == 'X')
                 {
                     boardState[i, j] = GameState.Side.X;
-                    print(boardState[i, j]);
                 }
                 else if (data[count] == 'O')
                 {
                     boardState[i, j] = GameState.Side.O;
-                    print(boardState[i, j]);
                 }
                 else
                 {
                     boardState[i, j] = GameState.Side.NONE;
-                    print(boardState[i, j]);
                 }
             }
         }
 
-        print(data);
+        print("BOARD STATE RECEIVED: " + boardState.ToString());
+        return boardState;
    
 
     }
 
 
 
-    void startCameraFeed()
+    /// <summary>
+    /// displays camera feed onto image passed in as a parameter
+    /// </summary>
+    /// <param name="img"></param>
+    public void startCameraFeed(Image img)
     {
         cameraFeedActive = true;
-
+        targetImg = img;
     }
 
-    void endCameraFeed()
+    public void endCameraFeed()
     {
         cameraFeedActive = false;
 
@@ -100,7 +133,7 @@ public class Client : MonoBehaviour
 
 
 
-    void displayCameraFeed()
+    public void displayCameraFeed()
     {
         NetworkStream stream = tcpClient.GetStream();
 
@@ -117,7 +150,7 @@ public class Client : MonoBehaviour
         while (stream.DataAvailable);
 
         tex.LoadImage(buffer);
-        testimg.sprite = Sprite.Create(tex, new Rect(0, 0, 320, 240), Vector2.zero);
+        targetImg.sprite = Sprite.Create(tex, new Rect(0, 0, 320, 240), Vector2.zero);
 
     }
 
@@ -127,31 +160,9 @@ public class Client : MonoBehaviour
     private void Update()
     {
 
-        if (cameraFeedActive)
+        if (cameraFeedActive && targetImg != null)
         {
             displayCameraFeed();
-        }
-
-
-        if (Input.GetKeyDown(KeyCode.S))
-        {
-            startCameraFeed();
-        }
-
-
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            endCameraFeed();
-        }
-
-        if (Input.GetKeyDown(KeyCode.B))
-        {
-            getBoardState();
-        }
-
-        if (Input.GetKeyDown(KeyCode.Q))
-        {
-            closeConnection();
         }
 
 
