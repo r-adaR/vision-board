@@ -128,6 +128,12 @@ def board_to_overhead(original_image):
     # Find lines outlining board.
     lines_ungrouped = cv.HoughLines(edge_image, 1, np.pi / 180, 45, None, 0, 0)
 
+    if lines_ungrouped is None:
+        return None
+
+
+
+
     
     #
     #     Calculate 4 bounding lines.
@@ -140,6 +146,9 @@ def board_to_overhead(original_image):
     
     # Scale theta value to make distance_threshold more reliable.
     modified_lines_ungrouped = copy.copy(lines_ungrouped)
+    if modified_lines_ungrouped is None:
+        return None
+
     theta_scaling_factor = max(original_image.shape[0], original_image.shape[1])
     modified_lines_ungrouped[:,0,1] = theta_scaling_factor * modified_lines_ungrouped[:,0,1] / math.pi
 

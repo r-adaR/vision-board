@@ -90,11 +90,15 @@ public class Client : MonoBehaviour
             {
                 count = (i * 5) + j;
 
-               //print(data[count]);
+                //print(data[count]);
+
+                //print(count);
+                //print(data.Length);
 
                 if (data[count] == 'X')
                 {
                     boardState[i, j] = GameState.Side.X;
+                    
                 }
                 else if (data[count] == 'O')
                 {
@@ -104,6 +108,7 @@ public class Client : MonoBehaviour
                 {
                     boardState[i, j] = GameState.Side.NONE;
                 }
+                print(boardState[i, j]);
             }
         }
 

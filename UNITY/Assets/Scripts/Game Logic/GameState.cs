@@ -42,6 +42,11 @@ public class GameState : MonoBehaviour
 
         currentPlayer = Side.X;
 
+        
+    }
+
+    private void Start()
+    {
         GameFlow.flow_instance.StartGame();
     }
 
