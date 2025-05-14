@@ -20,9 +20,9 @@ public class GameState : MonoBehaviour
     public Side currentPlayer { get; private set; }
 
     public int turn_number { get; private set; } = 1;
-    public int x_score { get; private set; } = 0;
+    public int x_score { get; set; } = 0;
     public int x_bonuses { get; private set; } = 0; // ex: if x_bonuses == 1 --> player x should get 50 extra points
-    public int o_score { get; private set; } = 0;
+    public int o_score { get; set; } = 0;
     public int o_bonuses { get; private set; } = 0; // ex: if o_bonuses == 2 --> player o should get 100 extra points
 
 
@@ -169,13 +169,17 @@ public class GameState : MonoBehaviour
                     errorArray[y,x] = true;
                 }
                 // square had nothing on it but it's now the not-current player's piece
-                else if (board[y,x] == Side.NONE && (newBoard[y, x] != Side.NONE || newBoard[y,x] != currentPlayer))
+                else if (board[y,x] == Side.NONE && (newBoard[y, x] != Side.NONE && newBoard[y,x] != currentPlayer))
                 {
                     errorArray[y,x] = true;
                 }
                 else if (board[y, x] == Side.NONE && newBoard[y, x] == currentPlayer) // square had nothing on it but it's now the new player
                 {
                     errorArray[y, x] = newPieces > 0; // it's an error if there were already new pieces placed down
+                    if (firstNewPiece == null)
+                    {
+                        firstNewPiece = new Tuple<int, int>(y,x);
+                    }
                     newPieces++;
                 }
             }
@@ -202,7 +206,7 @@ public class GameState : MonoBehaviour
         return false;
     }
 
-
+    /*
     /// <summary>
     /// returns a player's score from a side of a given board
     /// </summary>
@@ -389,5 +393,114 @@ public class GameState : MonoBehaviour
         if (side == Side.X) return newScore + (includeBonuses ? x_bonuses * 50 : 0);
         else return newScore + (includeBonuses ? o_bonuses * 50 : 0);
     }
+    */
 
-}
+    public int GetScore(Side side, Side[,] board, bool includeBonuses)
+    {
+        if (side == Side.NONE)
+        {
+            Debug.LogError("side passed in was NONE!");
+            return -1;
+        }
+
+        // we only care about updating the score for the one side we passed in
+        int newScore = 0;
+
+        // rows
+        for (int y=0; y<5; y++)
+        {
+            if (board[y, 2] != side) continue;
+
+            int count = 1;
+            if (board[y, 3] == side)
+            {
+                count++;
+                if (board[y, 4] == side) count++;
+            }
+            if (board[y, 1] == side)
+            {
+                count++;
+                if (board[y, 0] == side) count++;
+            }
+            if (count >= 3) newScore += 100 + (100 * (count - 3));
+        }
+
+        // columns
+        for (int x = 0; x < 5; x++)
+        {
+            if (board[2, x] != side) continue;
+
+            int count = 1;
+            if (board[3, x] == side)
+            {
+                count++;
+                if (board[4, x] == side) count++;
+            }
+            if (board[1, x] == side)
+            {
+                count++;
+                if (board[0, x] == side) count++;
+            }
+            if (count >= 3) newScore += 100 + (100 * (count - 3));
+        }
+
+        // diagonals
+        newScore += GetArrayScore(side, new Side[] { board[2, 0], board[1, 1], board[0, 2] });
+        newScore += GetArrayScore(side, new Side[] { board[3, 0], board[2, 1], board[1, 2], board[0,3] });
+        newScore += GetArrayScore(side, new Side[] { board[4, 0], board[3, 1], board[2, 2], board[1, 3], board[0, 4] });
+        newScore += GetArrayScore(side, new Side[] { board[4, 1], board[3, 2], board[2, 3], board[1, 4] });
+        newScore += GetArrayScore(side, new Side[] { board[4, 2], board[3, 3], board[2, 4] });
+
+        newScore += GetArrayScore(side, new Side[] { board[2, 4], board[1, 3], board[0, 2] });
+        newScore += GetArrayScore(side, new Side[] { board[3, 4], board[2, 3], board[1, 2], board[0, 1] });
+        newScore += GetArrayScore(side, new Side[] { board[4, 4], board[3, 3], board[2, 2], board[1, 1], board[0, 0] });
+        newScore += GetArrayScore(side, new Side[] { board[4, 3], board[3, 2], board[2, 1], board[1, 0] });
+        newScore += GetArrayScore(side, new Side[] { board[4, 2], board[3, 1], board[2, 0] });
+
+        if (includeBonuses) {
+            if (side == Side.X) newScore += 50 * game_instance.x_bonuses;
+            else newScore += 50 * game_instance.o_bonuses;
+        }
+        return newScore;
+    }
+
+    private int GetArrayScore(Side side, Side[] array)
+    {
+        int size = array.Length;
+        
+        if (size == 3)
+        {
+            if (array[1] != side) return 0;
+            return array[1] == array[0] && array[1] == array[2] ? 100 : 0;
+        }
+        if (size == 4)
+        {
+            if (array[1] != side || array[2] != side) return 0;
+
+            int score = 0;
+            score += array[0] == side ? 100 : 0;
+            score += array[3] == side ? 100 : 0;
+            return score;
+        }
+        if (size == 5)
+        {
+            if (array[2] != side) return 0;
+
+            int count = 1;
+            if (array[3] == side)
+            {
+                count++;
+                if (array[4] == side) count++;
+            }
+            if (array[1] == side)
+            {
+                count++;
+                if (array[0] == side) count++;
+            }
+            if (count >= 3) return 100 + (100 * (count - 3));
+        }
+
+        return 0;
+    }
+
+   }

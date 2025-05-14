@@ -1,4 +1,5 @@
 /.DS_Store
 UNITY/.DS_Store
 /.vs
-
+/venv
+/pyvenv.cfg

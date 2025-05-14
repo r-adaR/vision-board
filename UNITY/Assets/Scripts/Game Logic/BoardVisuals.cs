@@ -20,13 +20,13 @@ public class BoardVisuals : MonoBehaviour
     {
         Tuple<int, int> bonusLoc = game_instance.bonusLoc;
         bonusIndicator.SetActive(true);
-        bonusIndicator.transform.position = pieces[(bonusLoc.Item1 * 5) + bonusLoc.Item2].transform.position + Vector3.up * 0.5f;
+        bonusIndicator.transform.position = pieces[(bonusLoc.Item2 * 5) + bonusLoc.Item1].transform.position + Vector3.up * 0.5f;
     }
 
     // 0 <= y, x <= 4
     public void SetPiece(int y, int x, Side side)
     {
-        pieces[(y * 5) + x].ShowSide(side);
+        pieces[(x * 5) + y].ShowSide(side);
     }
 
     public void UpdateErrors(bool[,] errorArray)
@@ -40,11 +40,22 @@ public class BoardVisuals : MonoBehaviour
         }
     }
 
+    public void ClearErrors()
+    {
+        for (int y = 0; y < 5; y++)
+        {
+            for (int x = 0; x < 5; x++)
+            {
+                ShowError(y, x, false);
+            }
+        }
+    }
+
 
     // highlight a specific tile as containing an "error"
     private void ShowError(int y, int x, bool enabled)
     {
-        pieces[(y * 5) + x].ShowErrorTile(enabled);
+        pieces[(x * 5) + y].ShowErrorTile(enabled);
     }
 
 

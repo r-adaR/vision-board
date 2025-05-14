@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -108,11 +109,23 @@ public class Client : MonoBehaviour
                 {
                     boardState[i, j] = GameState.Side.NONE;
                 }
-                print(boardState[i, j]);
             }
         }
 
-        print("BOARD STATE RECEIVED: " + boardState.ToString());
+        /*
+        string debugString = "\n";
+        for (int y=0; y<5; y++)
+        {
+            for (int x=0; x<5; x++)
+            {
+                if (boardState[y, x] == Side.NONE) debugString += "_";
+                else debugString += boardState[y, x].ToString();
+                debugString += " ";
+            }
+            debugString += '\n';
+        }
+
+        print("BOARD STATE RECEIVED: " + debugString);*/
         return boardState;
    
 
