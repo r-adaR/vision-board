@@ -52,6 +52,8 @@ public class Client : MonoBehaviour
 
     public Side[,] getBoardState()
     {
+        if (GameFlow.flow_instance != null && GameFlow.flow_instance.canScan == false) return null;
+
         NetworkStream stream;
         try
         {
@@ -78,7 +80,6 @@ public class Client : MonoBehaviour
 
         if (data == "ERROR")
         {
-            print("Could not read board");
             return null;
         }
 
@@ -153,6 +154,7 @@ public class Client : MonoBehaviour
 
     public void displayCameraFeed()
     {
+        if (GameFlow.flow_instance != null && GameFlow.flow_instance.canScan == false) return;
         NetworkStream stream = tcpClient.GetStream();
 
         byte[] bufferWrite = Encoding.ASCII.GetBytes("SCF");

@@ -61,5 +61,6 @@ Material:
     - _ShadowBrightness: 0.19
     m_Colors:
     - _Color: {r: 1, g: 0.92236745, b: 0.3537736, a: 0}
+    - _EmissionColor: {r: 0.7735849, g: 0.384433, b: 0, a: 0.95686275}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

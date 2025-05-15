@@ -1,3 +1,4 @@
+using DG.Tweening;
 using System;
 using UnityEngine;
 using static GameState;
@@ -16,11 +17,21 @@ public class BoardVisuals : MonoBehaviour
     public Piece[] pieces;
     public GameObject bonusIndicator;
 
+    private Vector3 bonusScale;
+
     public void UpdateBonusLocation()
     {
-        Tuple<int, int> bonusLoc = game_instance.bonusLoc;
-        bonusIndicator.SetActive(true);
-        bonusIndicator.transform.position = pieces[(bonusLoc.Item2 * 5) + bonusLoc.Item1].transform.position + Vector3.up * 0.5f;
+        bonusIndicator.transform.DOScale(Vector3.zero, 0.3f).SetEase(Ease.OutExpo).OnComplete(() => { 
+
+            Tuple<int, int> bonusLoc = game_instance.bonusLoc;
+            bonusIndicator.SetActive(true);
+            bonusIndicator.transform.position = pieces[(bonusLoc.Item2 * 5) + bonusLoc.Item1].transform.position + Vector3.up * 0.5f;
+
+            // bonus tween
+            bonusIndicator.transform.localScale = Vector3.zero;
+            bonusIndicator.transform.DOScale(bonusScale, 0.7f).SetEase(Ease.OutElastic);
+
+        });
     }
 
     // 0 <= y, x <= 4
@@ -51,6 +62,11 @@ public class BoardVisuals : MonoBehaviour
         }
     }
 
+    public void HideBonus()
+    {
+        bonusIndicator.transform.position = Vector3.down * 100f;
+    }
+
 
     // highlight a specific tile as containing an "error"
     private void ShowError(int y, int x, bool enabled)
@@ -63,6 +79,7 @@ public class BoardVisuals : MonoBehaviour
 
     private void Start()
     {
+        bonusScale = bonusIndicator.transform.localScale;
         UpdateBonusLocation();
     }
 

@@ -17,6 +17,9 @@ public class GameFlow : MonoBehaviour
     [SerializeField] private TMP_Text x_score_text;
     [SerializeField] private TMP_Text o_score_text;
 
+    [SerializeField] private Camera gameCam;
+    private Color defaultCamColor;
+
     [SerializeField] private BoardVisuals board_visuals;
 
     [SerializeField] private Volume volume;
@@ -24,6 +27,8 @@ public class GameFlow : MonoBehaviour
     private PaniniProjection paPro;
 
     public static GameFlow flow_instance;
+
+    public bool canScan = false; // blocks scanning at the start animation
 
     bool readingCoroutineActive = false;
 
@@ -41,8 +46,11 @@ public class GameFlow : MonoBehaviour
     public void StartGame()
     {
         turn_text.text = game_instance.currentPlayer == Side.X ? "It's X's turn!" : "It's O's turn!";
-        x_score_text.text = $"X SCORE: {game_instance.GetScore(Side.X, game_instance.board, true)}";
-        o_score_text.text = $"O SCORE: {game_instance.GetScore(Side.O, game_instance.board, true)}";
+        int dummy;
+        x_score_text.text = $"X SCORE: {game_instance.GetScore(Side.X, game_instance.board, true, out dummy)}";
+        o_score_text.text = $"O SCORE: {game_instance.GetScore(Side.O, game_instance.board, true, out dummy)}";
+        defaultCamColor = gameCam.backgroundColor;
+        canScan = true;
     }
 
     private float clock = 0;
@@ -120,6 +128,12 @@ public class GameFlow : MonoBehaviour
             Tuple<int, int, Side> pieceAdded = game_instance.GetFirstNewPiece(_board);
             game_instance.SetTile(pieceAdded.Item1, pieceAdded.Item2, pieceAdded.Item3);
 
+            // IF WE GOT THE BONUS
+            if (pieceAdded.Item1 == game_instance.bonusLoc.Item1 && pieceAdded.Item2 == game_instance.bonusLoc.Item2)
+            {
+                board_visuals.HideBonus();
+            }
+
             game_instance.AdvanceTurn(); // update backend to make it the next player's turn
 
             // UPDATE VISUALS
@@ -131,14 +145,61 @@ public class GameFlow : MonoBehaviour
 
             int old_x = game_instance.x_score;
             int old_o = game_instance.o_score;
-            game_instance.x_score = game_instance.GetScore(Side.X, _board, true);
-            game_instance.o_score = game_instance.GetScore(Side.O, _board, true);
+            
+            int fiveInARows;
+            bool celebrateFiveInARow = false;
+
+            game_instance.x_score = game_instance.GetScore(Side.X, _board, true, out fiveInARows);
+            if (game_instance.x_fiveInARows < fiveInARows)
+            {
+                game_instance.x_fiveInARows = fiveInARows; celebrateFiveInARow = true;
+            }
+
+
+            game_instance.o_score = game_instance.GetScore(Side.O, _board, true, out fiveInARows);
+            if (game_instance.o_fiveInARows < fiveInARows)
+            {
+                game_instance.o_fiveInARows = fiveInARows; celebrateFiveInARow = true;
+            }
+            
 
             // IF SOMEONE GETS SCORE, DO THIS:
             if (old_x < game_instance.x_score || old_o < game_instance.o_score)
             {
+                int diff = Mathf.Max(game_instance.x_score - old_x, game_instance.o_score - old_o);
                 if (crAb != null) { crAb.intensity.value = 1f; DOTween.To(() => crAb.intensity.value, (float v) => { crAb.intensity.value = v; }, 0f, 1f).SetEase(Ease.OutCubic); }
                 if (paPro != null) { paPro.distance.value = 0.2f; DOTween.To(() => paPro.distance.value, (float v) => { paPro.distance.value = v; }, 0f, 1f).SetEase(Ease.OutCubic); }
+
+                // change bg color based on score received
+                if (diff >= 250)
+                {
+                    gameCam.backgroundColor = Color.cyan;
+                    gameCam.DOColor(Color.yellow, 0.4f).OnComplete(() => 
+                        gameCam.DOColor(Color.red, 0.4f).OnComplete(() => gameCam.DOColor(defaultCamColor, 0.4f))
+                    );
+                }
+                else if (diff >= 150)
+                {
+                    gameCam.backgroundColor = Color.yellow;
+                    gameCam.DOColor(Color.red, 0.4f).OnComplete(() => gameCam.DOColor(defaultCamColor, 0.4f));
+                }
+                else if (diff >= 100)
+                {
+                    gameCam.backgroundColor = Color.red;
+                    gameCam.DOColor(defaultCamColor, 0.4f);
+                }
+                else
+                {
+                    gameCam.backgroundColor = Color.gray;
+                    gameCam.DOColor(defaultCamColor, 0.4f);
+                }
+            }
+
+
+            // IF SOMEBODY GOT A FIVE IN A ROW:
+            if (celebrateFiveInARow)
+            {
+                AudioPlayer.instance.PlaySound("bell");
             }
 
             x_score_text.text = $"X SCORE: {game_instance.x_score}";

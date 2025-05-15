@@ -3,3 +3,4 @@ UNITY/.DS_Store
 /.vs
 /venv
 /pyvenv.cfg
+BACKEND/MAIN_METHOD/output.txt

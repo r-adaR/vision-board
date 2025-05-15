@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class GameState : MonoBehaviour
 {
@@ -15,6 +16,9 @@ public class GameState : MonoBehaviour
     public bool[,] errors { get; private set; } // board that highlights if any squares are in violation of illegal moves
     public Side[,] board {  get; private set; } // board w/ x's and o's
 
+    [SerializeField]
+    private UnityEvent OnGameOver = new UnityEvent();
+
 
     public Tuple<int, int> bonusLoc { get; private set; }
     public Side currentPlayer { get; private set; }
@@ -24,6 +28,10 @@ public class GameState : MonoBehaviour
     public int x_bonuses { get; private set; } = 0; // ex: if x_bonuses == 1 --> player x should get 50 extra points
     public int o_score { get; set; } = 0;
     public int o_bonuses { get; private set; } = 0; // ex: if o_bonuses == 2 --> player o should get 100 extra points
+
+
+    public int x_fiveInARows = 0;
+    public int o_fiveInARows = 0;
 
 
     public bool gameOver { get; private set; } = false;
@@ -47,7 +55,7 @@ public class GameState : MonoBehaviour
 
     private void Start()
     {
-        GameFlow.flow_instance.StartGame();
+        // GameFlow.flow_instance.StartGame();
     }
 
 
@@ -105,6 +113,7 @@ public class GameState : MonoBehaviour
         if (turn_number == 25)
         {
             gameOver = true; // the visual side of things will handle what to do from here
+            OnGameOver.Invoke();
         }
         else
         {
@@ -395,8 +404,11 @@ public class GameState : MonoBehaviour
     }
     */
 
-    public int GetScore(Side side, Side[,] board, bool includeBonuses)
+
+    // overloaded version that detects 5-in-a-rows
+    public int GetScore(Side side, Side[,] board, bool includeBonuses, out int fiveInARows)
     {
+        fiveInARows = 0;
         if (side == Side.NONE)
         {
             Debug.LogError("side passed in was NONE!");
@@ -407,7 +419,7 @@ public class GameState : MonoBehaviour
         int newScore = 0;
 
         // rows
-        for (int y=0; y<5; y++)
+        for (int y = 0; y < 5; y++)
         {
             if (board[y, 2] != side) continue;
 
@@ -422,7 +434,9 @@ public class GameState : MonoBehaviour
                 count++;
                 if (board[y, 0] == side) count++;
             }
-            if (count >= 3) newScore += 100 + (100 * (count - 3));
+            if (count == 3) newScore += 100;
+            else if (count == 4) newScore += 250;
+            else if (count == 5) { newScore += 500; fiveInARows++; }
         }
 
         // columns
@@ -441,30 +455,34 @@ public class GameState : MonoBehaviour
                 count++;
                 if (board[0, x] == side) count++;
             }
-            if (count >= 3) newScore += 100 + (100 * (count - 3));
+            if (count == 3) newScore += 100;
+            else if (count == 4) newScore += 250;
+            else if (count == 5) { newScore += 500; fiveInARows++; }
         }
 
         // diagonals
-        newScore += GetArrayScore(side, new Side[] { board[2, 0], board[1, 1], board[0, 2] });
-        newScore += GetArrayScore(side, new Side[] { board[3, 0], board[2, 1], board[1, 2], board[0,3] });
-        newScore += GetArrayScore(side, new Side[] { board[4, 0], board[3, 1], board[2, 2], board[1, 3], board[0, 4] });
-        newScore += GetArrayScore(side, new Side[] { board[4, 1], board[3, 2], board[2, 3], board[1, 4] });
-        newScore += GetArrayScore(side, new Side[] { board[4, 2], board[3, 3], board[2, 4] });
+        newScore += GetArrayScore(side, new Side[] { board[2, 0], board[1, 1], board[0, 2] }, ref fiveInARows);
+        newScore += GetArrayScore(side, new Side[] { board[3, 0], board[2, 1], board[1, 2], board[0, 3] }, ref fiveInARows);
+        newScore += GetArrayScore(side, new Side[] { board[4, 0], board[3, 1], board[2, 2], board[1, 3], board[0, 4] }, ref fiveInARows);
+        newScore += GetArrayScore(side, new Side[] { board[4, 1], board[3, 2], board[2, 3], board[1, 4] }, ref fiveInARows);
+        newScore += GetArrayScore(side, new Side[] { board[4, 2], board[3, 3], board[2, 4] }, ref fiveInARows);
 
-        newScore += GetArrayScore(side, new Side[] { board[2, 4], board[1, 3], board[0, 2] });
-        newScore += GetArrayScore(side, new Side[] { board[3, 4], board[2, 3], board[1, 2], board[0, 1] });
-        newScore += GetArrayScore(side, new Side[] { board[4, 4], board[3, 3], board[2, 2], board[1, 1], board[0, 0] });
-        newScore += GetArrayScore(side, new Side[] { board[4, 3], board[3, 2], board[2, 1], board[1, 0] });
-        newScore += GetArrayScore(side, new Side[] { board[4, 2], board[3, 1], board[2, 0] });
+        newScore += GetArrayScore(side, new Side[] { board[2, 4], board[1, 3], board[0, 2] }, ref fiveInARows);
+        newScore += GetArrayScore(side, new Side[] { board[3, 4], board[2, 3], board[1, 2], board[0, 1] }, ref fiveInARows);
+        newScore += GetArrayScore(side, new Side[] { board[4, 4], board[3, 3], board[2, 2], board[1, 1], board[0, 0] }, ref fiveInARows);
+        newScore += GetArrayScore(side, new Side[] { board[4, 3], board[3, 2], board[2, 1], board[1, 0] }, ref fiveInARows);
+        newScore += GetArrayScore(side, new Side[] { board[4, 2], board[3, 1], board[2, 0] }, ref fiveInARows);
 
-        if (includeBonuses) {
+        if (includeBonuses)
+        {
             if (side == Side.X) newScore += 50 * game_instance.x_bonuses;
             else newScore += 50 * game_instance.o_bonuses;
         }
         return newScore;
     }
 
-    private int GetArrayScore(Side side, Side[] array)
+
+    private int GetArrayScore(Side side, Side[] array, ref int fiveInARows)
     {
         int size = array.Length;
         
@@ -497,7 +515,11 @@ public class GameState : MonoBehaviour
                 count++;
                 if (array[0] == side) count++;
             }
-            if (count >= 3) return 100 + (100 * (count - 3));
+
+            if (count == 3) return 100;
+            else if (count == 4) return 250;
+            else if (count == 5) { fiveInARows++; return 500; }
+
         }
 
         return 0;
