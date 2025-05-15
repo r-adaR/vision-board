@@ -13,24 +13,26 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.listen(1)
     conn, addr = s.accept()
 
-    # open camera
+    # Attempt to open camera
     camera = cv.VideoCapture(0)
     if not camera.isOpened():
         raise Exception("Could not open camera.")
     
     with conn:
-        print('Connected by', addr)
-        while True:
-            # read frame from camera
-            ret, frame = camera.read()
 
+        print('Connected by', addr)
+
+        while True:
+            # Read frame from camera along with instruction message from the client.
+            ret, frame = camera.read()
             data = conn.recv(1024)
+
+            # If the instruction request is SCF (Send Camera Frame), send the encoded camera frame.
             if data == b"SCF":
                 if not ret:
                     print("Failed to read frame from camera.")
                     break
 
-                # print("Camera frame requested.")
                 resized_img = cv.resize(frame, (320, 240))
                 img_encode = cv.imencode('.jpg', resized_img)[1].tobytes()
                 
@@ -39,6 +41,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     f.write(base64_bytes)
                 conn.sendall(img_encode)
 
+            # If the instruction request is RGS (Read Game State), send the current board state.
             if data == b"RGS":
                 try:
                     board = vision_board_reader(frame)
@@ -55,9 +58,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     boardState = b"ERROR"
                     
                 conn.sendall(boardState)
+
+            # If the instruction request is QUIT, break the loop and close the connection.
             if data == b"QUIT":
                 break
 
-
-
+    # Release camera when connection is closed.
     camera.release()

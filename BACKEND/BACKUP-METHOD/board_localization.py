@@ -43,20 +43,12 @@ avg_x, avg_y, num_directional_lines = calculate_mean_point(lines, slope_clusters
 #Calculates the mean slope of all of the LINE_DIRECTION = 0 lines 
 avg_slope_0, lines_with_slopes_0 = calculate_mean_slope(lines, slope_clusters, 0, line_slopes, num_directional_lines) 
 # Calculates the mean slope of all of the LINE_DIRECTION = 1 lines 
-avg_slope_1, lines_with_slopes_1 = calculate_mean_slope(lines, slope_clusters, 1, line_slopes, num_directional_lines) 
-
-print(avg_slope_0, end="\n\n")
-print(avg_slope_1, end="\n\n")
-#print([i for i in lines_with_slopes_0], end="\n\n")
-#print([i for i in lines_with_slopes_1], end="\n\n")
-
-
+avg_slope_1, lines_with_slopes_1 = calculate_mean_slope(lines, slope_clusters, 1, line_slopes, num_directional_lines)
 
 # calculate y-intercept (b) of mean vertical line
 # b = y - mx
 y_intercept_avg_vert_line = avg_y - (avg_slope_0 * avg_x)
 y_intercept_avg_horizontal_line = avg_y - (avg_slope_1 * avg_x)
-
 
 # calculates the points of intersection between avg line (vertical & horizontal) & each actual line
 intersections, intersections_and_slope = calculate_intersections(cdst, slope_clusters, LINE_DIRECTION, lines, line_slopes, y_intercept_avg_vert_line,y_intercept_avg_horizontal_line, avg_slope_0, avg_slope_1)
@@ -93,9 +85,6 @@ for c in merged_points:
 for i in merged_points:
     cv2.circle(cdst, (np.int_(merged_points[i][0][0]), np.int_(merged_points[i][0][1])), 5, (255, 244, 244), 5)
 
-print(f"height = {height}")
-print(f"width = {width}")
-
 for i in merged_points:
     point, slope = merged_points[i][POINT], merged_points[i][SLOPE]
 
@@ -113,9 +102,6 @@ direction2 = []
 
 for m in merged_points:
     direction1.append(m) if merged_points[m][SLOPE] < 0 else direction2.append(m)
-        
-print(direction1)
-print(direction2)
 
 while True:
     cv2.imshow('test', cdst)
