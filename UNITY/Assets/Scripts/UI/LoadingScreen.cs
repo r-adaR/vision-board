@@ -24,7 +24,8 @@ public class LoadingScreen : MonoBehaviour
 
     public enum Scene
     {
-        TITLE = 0,
+        INIT,
+        TITLE,
         GAME
     }
 
@@ -41,16 +42,30 @@ public class LoadingScreen : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        m_transformTween = DOTween.Sequence();
-        m_transformTween.Append(m_blackRect.transform.DOScaleX(0f, m_tweenTime).SetEase(Ease.OutExpo));
-        m_transformTween.Insert(m_tweenTime/5, m_whiteRect.transform.DOScaleX(0f, 3*m_tweenTime/4).SetEase(Ease.OutExpo));
-        m_transformTween.Play();
 
-        m_transformTween.OnComplete(() => { 
+        if (VariableStorage.instance != null && !VariableStorage.instance.TryGet<bool>("loadWithAnimation"))
+        {
             m_blackRect.gameObject.SetActive(false); // disable this object in the hierarchy
             m_whiteRect.gameObject.SetActive(false); // disable this object in the hierarchy
             onLoadingFinished.Invoke();
-        });
+
+            // from now on, load scenes with the transition animation. This was only disabled for the title screen's initial startup.
+            VariableStorage.instance.Put("loadWithAnimation", true);
+        }
+        else
+        {
+            m_transformTween = DOTween.Sequence();
+            m_transformTween.Append(m_blackRect.transform.DOScaleX(0f, m_tweenTime).SetEase(Ease.OutExpo));
+            m_transformTween.Insert(m_tweenTime / 5, m_whiteRect.transform.DOScaleX(0f, 3 * m_tweenTime / 4).SetEase(Ease.OutExpo));
+            m_transformTween.Play();
+
+            m_transformTween.OnComplete(() =>
+            {
+                m_blackRect.gameObject.SetActive(false); // disable this object in the hierarchy
+                m_whiteRect.gameObject.SetActive(false); // disable this object in the hierarchy
+                onLoadingFinished.Invoke();
+            });
+        }
     }
 
     

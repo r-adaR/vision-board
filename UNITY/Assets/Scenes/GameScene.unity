@@ -6571,7 +6571,7 @@ AudioSource:
   m_audioClip: {fileID: 8300000, guid: 41e3e7025efd4f24b93699b1e434c5b2, type: 3}
   m_Resource: {fileID: 8300000, guid: 41e3e7025efd4f24b93699b1e434c5b2, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 0.203
+  m_Volume: 0.108
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -13048,10 +13048,10 @@ RectTransform:
   - {fileID: 1272933697}
   m_Father: {fileID: 1014457460}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 97.89569, y: 339}
-  m_SizeDelta: {x: 175.7913, y: 54.3984}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 97.89569, y: -176}
+  m_SizeDelta: {x: 175.7913, y: 54.398376}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &987842881
 MonoBehaviour:
