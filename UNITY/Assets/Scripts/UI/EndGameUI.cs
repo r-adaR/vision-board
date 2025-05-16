@@ -32,7 +32,7 @@ public class EndGameUI : MonoBehaviour
         seq.Insert(1f, _UI.DOLocalMoveY(_UI.localPosition.y + 76, 0.3f).SetEase(Ease.OutExpo));
 
         seq.Insert(1f, _mask.DOSizeDelta(new Vector2(_mask.rect.width, 700f), 0.7f).SetEase(Ease.OutExpo)); // make mask reveal text box, then type out text
-        seq.Insert(1.5f, DOTween.To(() => _text.maxVisibleCharacters, (int val) => _text.maxVisibleCharacters = val, _text.text.Length, 1f).SetEase(Ease.InOutCubic));
+        seq.Insert(1.5f, DOTween.To(() => _text.maxVisibleCharacters, (int val) => _text.maxVisibleCharacters = val, _text.text.Length + 2, 1f).SetEase(Ease.InOutCubic));
         
         
         seq.Append(button.DOLocalMoveY(button.transform.localPosition.y - 100, 0.5f).SetEase(Ease.OutExpo)); // show button to go to title screen

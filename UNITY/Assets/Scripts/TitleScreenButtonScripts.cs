@@ -44,18 +44,22 @@ public class TitleScreenButtonScripts : MonoBehaviour
         if (camTransform.localPosition.x < 0)
         {
             camTransform.DOLocalMoveX(240, 0.5f).SetEase(Ease.InOutCubic);
+            enableScanning = true;
         } 
         else
         {
             camTransform.DOLocalMoveX(-260, 0.5f).SetEase(Ease.InOutCubic);
+            enableScanning = false;
         }
     }
 
 
     // update calibration screen w/ what the camera sees
     private float clock = 0;
+    public bool enableScanning = false;
     private void Update()
     {
+        if (!enableScanning) return;
         clock += Time.deltaTime; // only increase clock counter if we're currently not confirming the board state
         if (clock > 1) // every second, see if the read board state is different
         {
