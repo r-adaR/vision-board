@@ -1,4 +1,5 @@
 using DG.Tweening;
+using System;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -10,7 +11,7 @@ public class TitleScreenButtonScripts : MonoBehaviour
     [SerializeField] private Transform camTransform;
     [SerializeField] private Image camImage;
     [SerializeField] private TMP_Text boardText;
-
+    [SerializeField] private GameObject networkErrorText;
 
     private void Start()
     {
@@ -60,6 +61,10 @@ public class TitleScreenButtonScripts : MonoBehaviour
         {
             clock = 0;
             Side[,] newBoard = Client.network_instance.getBoardState();
+            
+
+            if (Client.network_instance.notConnected) networkErrorText.SetActive(true);
+            else networkErrorText.SetActive(false);
 
 
             if (newBoard == null)

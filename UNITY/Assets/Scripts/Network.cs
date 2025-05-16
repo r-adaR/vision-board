@@ -16,6 +16,8 @@ public class Client : MonoBehaviour
     bool cameraFeedActive = false;
     Texture2D tex;
 
+    public bool notConnected = false;
+
     public static Client network_instance;
     private Image targetImg;
 
@@ -58,9 +60,10 @@ public class Client : MonoBehaviour
         try
         {
             stream = tcpClient.GetStream();
-        } catch(System.InvalidOperationException e)
+            notConnected = false;
+        } catch(System.InvalidOperationException)
         {
-            Debug.LogError("Invalid Operatoin Exception was thrown in getBoardState(). Stack: " + e.StackTrace);
+            notConnected = true;
             return null;
         }
 
