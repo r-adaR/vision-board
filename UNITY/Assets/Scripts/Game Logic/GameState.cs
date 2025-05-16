@@ -77,7 +77,7 @@ public class GameState : MonoBehaviour
         }
 
         board[y, x] = side;
-        if (bonusLoc.Item1 == y && bonusLoc.Item2 == x)
+        if (bonusLoc != null && bonusLoc.Item1 == y && bonusLoc.Item2 == x)
         {
             if (side == Side.X) x_bonuses++;
             else if (side == Side.O) o_bonuses++;
@@ -118,7 +118,14 @@ public class GameState : MonoBehaviour
         else
         {
             turn_number++;
-            bonusLoc = GetRandomEmptySquare(this.board);
+            if (turn_number >= 21) // stop doing bonuses after this turn
+            {
+                bonusLoc = null;
+            }
+            else
+            {
+                bonusLoc = GetRandomEmptySquare(this.board);
+            }
             if (currentPlayer == Side.X) currentPlayer = Side.O;
             else currentPlayer = Side.X;
         }

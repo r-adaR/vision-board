@@ -1,11 +1,9 @@
-using Mono.Cecil.Cil;
 using TMPro;
 using UnityEngine;
 using static GameState;
 using static Client;
 using System.Collections;
 using System;
-using Unity.VisualScripting;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using DG.Tweening;
@@ -16,6 +14,7 @@ public class GameFlow : MonoBehaviour
     [SerializeField] private TMP_Text turn_text;
     [SerializeField] private TMP_Text x_score_text;
     [SerializeField] private TMP_Text o_score_text;
+    [SerializeField] private Transform illegalMoveIndicator;
 
     [SerializeField] private Camera gameCam;
     private Color defaultCamColor;
@@ -74,6 +73,10 @@ public class GameFlow : MonoBehaviour
             else
             {
                 board_visuals.ClearErrors();
+                if (illegalMoveIndicator.localPosition.y > 0) // if illegal move indicator is shown on screen
+                {
+                    illegalMoveIndicator.DOLocalMoveY(-50, 0.3f).SetEase(Ease.InExpo);
+                }
             }
         }
     }
@@ -117,35 +120,31 @@ public class GameFlow : MonoBehaviour
         bool[,] errors = game_instance.GetErrors(game_instance.board, _board, game_instance.currentPlayer);
         board_visuals.UpdateErrors(errors);
 
+
         if (game_instance.ThereAreErrors(errors))
         {
             // let the player know they messed up
-            turn_text.text = "Please fix illegal move(s)";
+            illegalMoveIndicator.DOLocalMoveY(50, 0.3f).SetEase(Ease.OutExpo);
         }
         else
         {
+            // if illegal move indicator was shown on screen, bring it back down. at this point, all tiles are legal.
+            if (illegalMoveIndicator.localPosition.y > 0) illegalMoveIndicator.DOLocalMoveY(-50, 0.3f).SetEase(Ease.InExpo);
+
             // advance the game!
             Tuple<int, int, Side> pieceAdded = game_instance.GetFirstNewPiece(_board);
             game_instance.SetTile(pieceAdded.Item1, pieceAdded.Item2, pieceAdded.Item3);
 
             // IF WE GOT THE BONUS
-            if (pieceAdded.Item1 == game_instance.bonusLoc.Item1 && pieceAdded.Item2 == game_instance.bonusLoc.Item2)
+            if (game_instance.bonusLoc != null && pieceAdded.Item1 == game_instance.bonusLoc.Item1 && pieceAdded.Item2 == game_instance.bonusLoc.Item2)
             {
+                AudioPlayer.instance.PlaySound("bonus");
                 board_visuals.HideBonus();
             }
 
-            game_instance.AdvanceTurn(); // update backend to make it the next player's turn
-
-            // UPDATE VISUALS
-            board_visuals.SetPiece(pieceAdded.Item1, pieceAdded.Item2, pieceAdded.Item3);
-            board_visuals.UpdateBonusLocation();
-
-            // UPDATE TEXT
-            turn_text.text = game_instance.currentPlayer == Side.X ? "It's X's turn!" : "It's O's turn!";
-
             int old_x = game_instance.x_score;
             int old_o = game_instance.o_score;
-            
+
             int fiveInARows;
             bool celebrateFiveInARow = false;
 
@@ -155,13 +154,11 @@ public class GameFlow : MonoBehaviour
                 game_instance.x_fiveInARows = fiveInARows; celebrateFiveInARow = true;
             }
 
-
             game_instance.o_score = game_instance.GetScore(Side.O, _board, true, out fiveInARows);
             if (game_instance.o_fiveInARows < fiveInARows)
             {
                 game_instance.o_fiveInARows = fiveInARows; celebrateFiveInARow = true;
             }
-            
 
             // IF SOMEONE GETS SCORE, DO THIS:
             if (old_x < game_instance.x_score || old_o < game_instance.o_score)
@@ -170,11 +167,14 @@ public class GameFlow : MonoBehaviour
                 if (crAb != null) { crAb.intensity.value = 1f; DOTween.To(() => crAb.intensity.value, (float v) => { crAb.intensity.value = v; }, 0f, 1f).SetEase(Ease.OutCubic); }
                 if (paPro != null) { paPro.distance.value = 0.2f; DOTween.To(() => paPro.distance.value, (float v) => { paPro.distance.value = v; }, 0f, 1f).SetEase(Ease.OutCubic); }
 
+                // ADD POINT GAINED INDICATOR ON TOP OF PIECE 
+                board_visuals.SpawnPointsAbovePiece(pieceAdded.Item1, pieceAdded.Item2, diff);
+
                 // change bg color based on score received
                 if (diff >= 250)
                 {
                     gameCam.backgroundColor = Color.cyan;
-                    gameCam.DOColor(Color.yellow, 0.4f).OnComplete(() => 
+                    gameCam.DOColor(Color.yellow, 0.4f).OnComplete(() =>
                         gameCam.DOColor(Color.red, 0.4f).OnComplete(() => gameCam.DOColor(defaultCamColor, 0.4f))
                     );
                 }
@@ -195,12 +195,23 @@ public class GameFlow : MonoBehaviour
                 }
             }
 
-
             // IF SOMEBODY GOT A FIVE IN A ROW:
             if (celebrateFiveInARow)
             {
                 AudioPlayer.instance.PlaySound("bell");
             }
+
+
+
+            game_instance.AdvanceTurn(); // update backend to make it the next player's turn
+
+            // UPDATE VISUALS
+            board_visuals.SetPiece(pieceAdded.Item1, pieceAdded.Item2, pieceAdded.Item3);
+            board_visuals.UpdateBonusLocation();
+
+            // UPDATE TEXT
+            turn_text.text = game_instance.currentPlayer == Side.X ? "It's X's turn!" : "It's O's turn!";
+
 
             x_score_text.text = $"X SCORE: {game_instance.x_score}";
             o_score_text.text = $"O SCORE: {game_instance.o_score}";

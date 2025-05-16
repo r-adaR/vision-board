@@ -24,6 +24,12 @@ public class BoardVisuals : MonoBehaviour
         bonusIndicator.transform.DOScale(Vector3.zero, 0.3f).SetEase(Ease.OutExpo).OnComplete(() => { 
 
             Tuple<int, int> bonusLoc = game_instance.bonusLoc;
+            if (bonusLoc == null)
+            {
+                // hide it
+                HideBonus();
+                return;
+            }
             bonusIndicator.SetActive(true);
             bonusIndicator.transform.position = pieces[(bonusLoc.Item2 * 5) + bonusLoc.Item1].transform.position + Vector3.up * 0.5f;
 
@@ -65,6 +71,16 @@ public class BoardVisuals : MonoBehaviour
     public void HideBonus()
     {
         bonusIndicator.transform.position = Vector3.down * 100f;
+    }
+
+    public void SpawnPointsAbovePiece(int y, int x, int score)
+    {
+        Piece piece = pieces[(x * 5) + y];
+        PointIndicationSpawner.Instance.Spawn(
+            score, 
+            game_instance.currentPlayer == Side.X ? new Color(.25f, .72f, 1f) : new Color(1f, .78f, .25f), 
+            piece.transform.position
+            );
     }
 
 
