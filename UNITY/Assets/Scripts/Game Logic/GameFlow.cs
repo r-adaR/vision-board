@@ -81,7 +81,6 @@ public class GameFlow : MonoBehaviour
         }
     }
 
-
     /// <summary>
     /// pass in a new board state as a parameter, this function will certify
     /// beyond a shadow of a doubt that the board is indeed this state, and make that move.
@@ -139,6 +138,7 @@ public class GameFlow : MonoBehaviour
             if (game_instance.bonusLoc != null && pieceAdded.Item1 == game_instance.bonusLoc.Item1 && pieceAdded.Item2 == game_instance.bonusLoc.Item2)
             {
                 AudioPlayer.instance.PlaySound("bonus");
+                board_visuals.EmitBonusParticles();
                 board_visuals.HideBonus();
             }
 

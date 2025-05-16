@@ -14,8 +14,11 @@ public class BoardVisuals : MonoBehaviour
      *  20 21 22 23 24
      */
 
+    [SerializeField] private GameObject gameUI;
+
     public Piece[] pieces;
     public GameObject bonusIndicator;
+    private ParticleSystem bonusParticles;
 
     private Vector3 bonusScale;
 
@@ -57,6 +60,17 @@ public class BoardVisuals : MonoBehaviour
         }
     }
 
+    public void HideUI()
+    {
+        gameUI.SetActive(false);
+    }
+
+    public void EmitBonusParticles()
+    {
+        bonusParticles.Stop();
+        bonusParticles.Play();
+    }
+
     public void ClearErrors()
     {
         for (int y = 0; y < 5; y++)
@@ -70,7 +84,7 @@ public class BoardVisuals : MonoBehaviour
 
     public void HideBonus()
     {
-        bonusIndicator.transform.position = Vector3.down * 100f;
+        bonusIndicator.transform.localScale = Vector3.zero;
     }
 
     public void SpawnPointsAbovePiece(int y, int x, int score)
@@ -96,6 +110,7 @@ public class BoardVisuals : MonoBehaviour
     private void Start()
     {
         bonusScale = bonusIndicator.transform.localScale;
+        bonusParticles = bonusIndicator.GetComponentInChildren<ParticleSystem>();
         UpdateBonusLocation();
     }
 
