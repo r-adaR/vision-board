@@ -40,7 +40,7 @@ def classify_piece(input_tile_image, certainty_threshold=0.98):
 
 
 
-def read_board(input_overhead_image, class_dict={0:'', 1:'X', 2:'O'}):
+def read_board(input_overhead_image, class_dict={0:'', 1:'X', 2:'O', None:'?'}):
     # Calculate tile size.
     height, width = input_overhead_image.shape
     height, width = (int(height / 5), int(width/5))
@@ -52,10 +52,6 @@ def read_board(input_overhead_image, class_dict={0:'', 1:'X', 2:'O'}):
             img_section = input_overhead_image[y*height:(y+1)*height, x*width:(x+1)*width]
 
             predicted_tile = classify_piece(img_section)
-
-            # Too uncertain, return None
-            if predicted_tile is None:
-                return None
 
             # Update read board for this space
             predicted_tile = class_dict[predicted_tile]
