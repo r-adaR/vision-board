@@ -109,6 +109,20 @@ public class Client : MonoBehaviour
                 {
                     boardState[i, j] = GameState.Side.O;
                 }
+                else if (data[count] == '?')
+                {
+                    // if uncertain for a tile that used to be X or O, then just treat it as X or O
+                    if (game_instance.board[i,j] == Side.X || game_instance.board[i, j] == Side.O)
+                    {
+                        boardState[i, j] = game_instance.board[i, j];
+                        // boardState[i, j] = GameState.Side.UNSURE;
+                    }
+                    else
+                    {
+                        // if uncertain about a spot that used to be empty, return board scan fail
+                        return null;
+                    }
+                }
                 else
                 {
                     boardState[i, j] = GameState.Side.NONE;

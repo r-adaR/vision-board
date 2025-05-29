@@ -11,6 +11,7 @@ public class GameState : MonoBehaviour
         NONE,
         X,
         O,
+        UNSURE
     }
 
     public bool[,] errors { get; private set; } // board that highlights if any squares are in violation of illegal moves

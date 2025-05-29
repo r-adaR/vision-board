@@ -100,7 +100,8 @@ public class GameFlow : MonoBehaviour
             if (newScan == null) nulls++;
             else if (AreBoardsEqual(newScan, _board)) correct++;
 
-            print($"nulls: {nulls}/{i}, correct: {correct}/{i}\nTARGET BOARD: \n{boardToString(_board)} \n\nSEEN BOARD: \n{boardToString(newScan)}");
+            print($"nulls: {nulls}/{i}, correct: {correct}/{i}\nTARGET BOARD: \n{boardToString(_board)} \n\nSEEN BOARD: \n{boardToString(newScan)}" +
+                $"\nREAL BOARD: \n{boardToString(game_instance.board)}");
             // DEBUG
 
             yield return new WaitForSeconds(DELAY_PER_SCAN);
