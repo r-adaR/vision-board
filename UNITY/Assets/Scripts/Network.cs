@@ -120,7 +120,8 @@ public class Client : MonoBehaviour
                     else
                     {
                         // if uncertain about a spot that used to be empty, return board scan fail
-                        return null;
+                        boardState[i, j] = game_instance.board[i, j];
+                        // return null;
                     }
                 }
                 else

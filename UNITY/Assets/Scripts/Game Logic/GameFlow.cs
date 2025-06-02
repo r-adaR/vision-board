@@ -109,7 +109,8 @@ public class GameFlow : MonoBehaviour
 
         // if 20% were nulls, or less than 80% of the scans matched,
         // ignore this new board state. the player is probably making a move
-        if (1.0f * nulls /NUMBER_OF_SCANS > 0.2f || 1.0f * correct / NUMBER_OF_SCANS < 0.7f)
+        // if (1.0f * nulls / NUMBER_OF_SCANS > 0.2f || 1.0f * correct / NUMBER_OF_SCANS < 0.7f)
+            if (1.0f * correct / NUMBER_OF_SCANS < 0.3f)
         {
             readingCoroutineActive = false;
             print($"many scans failed. Nulls: {1.0f*nulls / NUMBER_OF_SCANS > 0.2f}, Matched enough: {1.0f*correct / NUMBER_OF_SCANS < 0.7f}");
