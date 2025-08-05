@@ -166,44 +166,60 @@ public class Client : MonoBehaviour
 
 
 
-    public void displayCameraFeed()
+    public async Task DisplayCameraFeedAsync()
     {
-        lock (streamLock)
+        byte[] imageData = null;
+
+        //runs the camera I/O data request on a background thread --> doesnt block animations on main thread
+        await Task.Run(() =>
         {
-            if (GameFlow.flow_instance != null && GameFlow.flow_instance.canScan == false) return;
-            NetworkStream stream = tcpClient.GetStream();
-
-            byte[] bufferWrite = Encoding.ASCII.GetBytes("SCF");
-            stream.Write(bufferWrite, 0, bufferWrite.Length);
-            byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
-
-            int totalBytesRead = 0;
-            do
+            lock (streamLock)
             {
-                int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
-                totalBytesRead += bytesRead;
-            }
-            while (stream.DataAvailable);
+                if (GameFlow.flow_instance != null && !GameFlow.flow_instance.canScan) return;
 
-            tex.LoadImage(buffer);
+                NetworkStream stream = tcpClient.GetStream();
+                byte[] bufferWrite = Encoding.ASCII.GetBytes("SCF");
+                stream.Write(bufferWrite, 0, bufferWrite.Length);
+
+                byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
+                int totalBytesRead = 0;
+                do
+                {
+                    int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
+                    totalBytesRead += bytesRead;
+                }
+                while (stream.DataAvailable);
+
+                imageData = new byte[totalBytesRead];
+                Array.Copy(buffer, imageData, totalBytesRead);
+            }
+        });
+
+        // exited background thread --> can create the image sprite on the main thread (this unity api only works on main thread)
+        if (imageData != null && targetImg != null)
+        {
+            tex.LoadImage(imageData);
             targetImg.sprite = Sprite.Create(tex, new Rect(0, 0, 320, 240), Vector2.zero);
         }
-
     }
 
 
 
 
-    private void Update()
+    //used to not overload the network by blocking multiple camera/network calls at the same time
+    private bool isLoadingCameraFrame = false;
+
+    private async void Update()
     {
-
-        if (cameraFeedActive && targetImg != null)
+        if (cameraFeedActive && targetImg != null && !isLoadingCameraFrame)
         {
-            displayCameraFeed();
+            isLoadingCameraFrame = true;
+            await DisplayCameraFeedAsync();
+            isLoadingCameraFrame = false;
         }
-
-
     }
+
+
 
 
     void closeConnection()
