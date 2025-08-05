@@ -7,6 +7,7 @@ using System;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using DG.Tweening;
+using System.Threading.Tasks;
 
 public class GameFlow : MonoBehaviour
 {
@@ -30,6 +31,7 @@ public class GameFlow : MonoBehaviour
     public bool canScan = false; // blocks scanning at the start animation
 
     bool readingCoroutineActive = false;
+    private bool checkingBoardChange = false;
 
     private const int NUMBER_OF_SCANS = 10;
     private const float DELAY_PER_SCAN = 0.01f;
@@ -59,27 +61,46 @@ public class GameFlow : MonoBehaviour
         if (clock > 1) // every second, see if the read board state is different
         {
             clock = 0;
-            Side[,] newBoard = network_instance.getBoardState();
-            bool newBoardIsSame = AreBoardsEqual(newBoard, game_instance.board);
-            if (newBoard != null && !newBoardIsSame)
-            {
-                // start the confirmation process
-                StartCoroutine(ConfirmBoardState(newBoard));
-            }
-            else if (newBoard == null)
-            {
-                Debug.LogWarning("Board could not be read");
-            }
-            else
-            {
-                board_visuals.ClearErrors();
-                if (illegalMoveIndicator.localPosition.y > 0) // if illegal move indicator is shown on screen
-                {
-                    illegalMoveIndicator.DOLocalMoveY(-50, 0.3f).SetEase(Ease.InExpo);
-                }
-            }
+            if (!readingCoroutineActive && !checkingBoardChange)
+                StartCoroutine(CheckForBoardChange());
         }
     }
+
+    private IEnumerator CheckForBoardChange()
+    {
+        checkingBoardChange = true;
+
+        //run getBoardStateAsync as a task
+        Task<Side[,]> task = network_instance.GetBoardStateAsync();
+
+        //while getBoardStateAsync is still running wait here for another frame --> yield time back to the main thread (doesn't block)
+        while (!task.IsCompleted)
+            yield return null;
+
+        Side[,] newBoard = task.Result;
+
+
+        bool newBoardIsSame = AreBoardsEqual(newBoard, game_instance.board);
+        if (newBoard != null && !newBoardIsSame)
+        {
+            // start the confirmation process
+            StartCoroutine(ConfirmBoardState(newBoard));
+        }
+        else if (newBoard == null)
+        {
+            Debug.LogWarning("Board could not be read");
+        }
+        else
+        {
+            board_visuals.ClearErrors();
+            if (illegalMoveIndicator.localPosition.y > 0) // if illegal move indicator is shown on screen
+            {
+                illegalMoveIndicator.DOLocalMoveY(-50, 0.3f).SetEase(Ease.InExpo);
+            }
+        }
+        checkingBoardChange = false;
+    }
+
 
     /// <summary>
     /// pass in a new board state as a parameter, this function will certify
@@ -96,7 +117,16 @@ public class GameFlow : MonoBehaviour
         int nulls = 0;
         for (int i = 0; i < NUMBER_OF_SCANS; i++)
         {
-            Side[,] newScan = network_instance.getBoardState();
+
+            //run getBoardStateAsync as a task
+            Task<Side[,]> task = network_instance.GetBoardStateAsync();
+
+            //while getBoardStateAsync is still running wait here for another frame --> yield time back to the main thread (doesn't block)
+            while (!task.IsCompleted)
+                yield return null;
+            Side[,] newScan = task.Result;
+
+
             if (newScan == null) nulls++;
             else if (AreBoardsEqual(newScan, _board)) correct++;
 
@@ -110,10 +140,10 @@ public class GameFlow : MonoBehaviour
         // if 20% were nulls, or less than 80% of the scans matched,
         // ignore this new board state. the player is probably making a move
         // if (1.0f * nulls / NUMBER_OF_SCANS > 0.2f || 1.0f * correct / NUMBER_OF_SCANS < 0.7f)
-            if (1.0f * correct / NUMBER_OF_SCANS < 0.3f)
+        if (1.0f * correct / NUMBER_OF_SCANS < 0.3f)
         {
             readingCoroutineActive = false;
-            print($"many scans failed. Nulls: {1.0f*nulls / NUMBER_OF_SCANS > 0.2f}, Matched enough: {1.0f*correct / NUMBER_OF_SCANS < 0.7f}");
+            print($"many scans failed. Nulls: {1.0f * nulls / NUMBER_OF_SCANS > 0.2f}, Matched enough: {1.0f * correct / NUMBER_OF_SCANS < 0.7f}");
             yield break;
         }
 
@@ -268,4 +298,6 @@ public class GameFlow : MonoBehaviour
         return true;
     }
 }
+
+
 

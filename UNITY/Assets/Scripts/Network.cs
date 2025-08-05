@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -50,105 +51,100 @@ public class Client : MonoBehaviour
         closeConnection();
     }
 
+    private readonly object streamLock = new object();
 
-
-    public Side[,] getBoardState()
+    public Task<Side[,]> GetBoardStateAsync()
     {
-        if (GameFlow.flow_instance != null && GameFlow.flow_instance.canScan == false) return null;
-
-        NetworkStream stream;
-        try
+        return Task.Run(() =>
         {
-            stream = tcpClient.GetStream();
-            notConnected = false;
-        } catch(System.InvalidOperationException)
-        {
-            notConnected = true;
-            return null;
-        }
-
-        byte[] bufferWrite = Encoding.ASCII.GetBytes("RGS");
-        stream.Write(bufferWrite, 0, bufferWrite.Length);
-        byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
-
-        int totalBytesRead = 0;
-        do
-        {
-            int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
-            totalBytesRead += bytesRead;
-        }
-        while (stream.DataAvailable);
-
-        string data = Encoding.ASCII.GetString(buffer, 0, totalBytesRead);
-
-        if (data == "ERROR")
-        {
-            return null;
-        }
-
-        GameState.Side[,] boardState = new GameState.Side[5,5];
-        int count = 0;
-
-        for (int i = 0; i < 5; i++)
-        {
-            for (int j = 0; j < 5; j++)
+            lock (streamLock)
             {
-                count = (i * 5) + j;
 
-                //print(data[count]);
+                if (GameFlow.flow_instance != null && GameFlow.flow_instance.canScan == false) return null;
 
-                //print(count);
-                //print(data.Length);
 
-                if (data[count] == 'X')
+                NetworkStream stream;
+                try
                 {
-                    boardState[i, j] = GameState.Side.X;
-                    
+                    stream = tcpClient.GetStream();
+                    notConnected = false;
                 }
-                else if (data[count] == 'O')
+                catch (System.InvalidOperationException)
                 {
-                    boardState[i, j] = GameState.Side.O;
+                    notConnected = true;
+                    return null;
                 }
-                else if (data[count] == '?')
+
+                byte[] bufferWrite = Encoding.ASCII.GetBytes("RGS");
+                stream.Write(bufferWrite, 0, bufferWrite.Length);
+                byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
+
+
+                int totalBytesRead = 0;
+                do
                 {
-                    // if uncertain for a tile that used to be X or O, then just treat it as X or O
-                    if (game_instance.board[i,j] == Side.X || game_instance.board[i, j] == Side.O)
+                    int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
+                    totalBytesRead += bytesRead;
+                }
+                while (stream.DataAvailable);
+
+
+                string data = Encoding.ASCII.GetString(buffer, 0, totalBytesRead);
+
+
+                if (data == "ERROR")
+                {
+                    Debug.LogWarning("Received ERROR from server");
+                    return null;
+                }
+
+
+                GameState.Side[,] boardState = new GameState.Side[5, 5];
+                int count = 0;
+
+                for (int i = 0; i < 5; i++)
+                {
+                    for (int j = 0; j < 5; j++)
                     {
-                        boardState[i, j] = game_instance.board[i, j];
-                        // boardState[i, j] = GameState.Side.UNSURE;
-                    }
-                    else
-                    {
-                        // if uncertain about a spot that used to be empty, return board scan fail
-                        boardState[i, j] = game_instance.board[i, j];
-                        // return null;
+                        count = (i * 5) + j;
+
+
+                        if (data[count] == 'X')
+                        {
+                            boardState[i, j] = GameState.Side.X;
+                        }
+                        else if (data[count] == 'O')
+                        {
+                            boardState[i, j] = GameState.Side.O;
+                        }
+                        else if (data[count] == '?')
+                        {
+                            // if uncertain for a tile that used to be X or O, then just treat it as X or O
+                            if (game_instance.board[i, j] == Side.X || game_instance.board[i, j] == Side.O)
+                            {
+                                boardState[i, j] = game_instance.board[i, j];
+                                // boardState[i, j] = GameState.Side.UNSURE;
+                            }
+                            else
+                            {
+                                // if uncertain about a spot that used to be empty, return board scan fail
+                                boardState[i, j] = game_instance.board[i, j];
+                                // return null;
+                            }
+                        }
+                        else
+                        {
+                            boardState[i, j] = GameState.Side.NONE;
+                        }
                     }
                 }
-                else
-                {
-                    boardState[i, j] = GameState.Side.NONE;
-                }
+
+                return boardState;
             }
-        }
-
-        /*
-        string debugString = "\n";
-        for (int y=0; y<5; y++)
-        {
-            for (int x=0; x<5; x++)
-            {
-                if (boardState[y, x] == Side.NONE) debugString += "_";
-                else debugString += boardState[y, x].ToString();
-                debugString += " ";
-            }
-            debugString += '\n';
-        }
-
-        print("BOARD STATE RECEIVED: " + debugString);*/
-        return boardState;
-   
-
+        });
     }
+
+
 
 
 
@@ -172,23 +168,26 @@ public class Client : MonoBehaviour
 
     public void displayCameraFeed()
     {
-        if (GameFlow.flow_instance != null && GameFlow.flow_instance.canScan == false) return;
-        NetworkStream stream = tcpClient.GetStream();
-
-        byte[] bufferWrite = Encoding.ASCII.GetBytes("SCF");
-        stream.Write(bufferWrite, 0, bufferWrite.Length);
-        byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
-
-        int totalBytesRead = 0;
-        do
+        lock (streamLock)
         {
-            int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
-            totalBytesRead += bytesRead;
-        }
-        while (stream.DataAvailable);
+            if (GameFlow.flow_instance != null && GameFlow.flow_instance.canScan == false) return;
+            NetworkStream stream = tcpClient.GetStream();
 
-        tex.LoadImage(buffer);
-        targetImg.sprite = Sprite.Create(tex, new Rect(0, 0, 320, 240), Vector2.zero);
+            byte[] bufferWrite = Encoding.ASCII.GetBytes("SCF");
+            stream.Write(bufferWrite, 0, bufferWrite.Length);
+            byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
+
+            int totalBytesRead = 0;
+            do
+            {
+                int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
+                totalBytesRead += bytesRead;
+            }
+            while (stream.DataAvailable);
+
+            tex.LoadImage(buffer);
+            targetImg.sprite = Sprite.Create(tex, new Rect(0, 0, 320, 240), Vector2.zero);
+        }
 
     }
 
@@ -221,3 +220,5 @@ public class Client : MonoBehaviour
 
 
 }
+
+
