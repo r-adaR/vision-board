@@ -7,25 +7,22 @@ from VisionBoard import vision_board_reader, BoardReadError
 HOST = "127.0.0.1"
 PORT = 8181
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
     # Bind the socket to the address and port and add a listener to accept connections.
+    print("Initiating server...")
     s.bind((HOST, PORT))
-    s.listen(1)
-    conn, addr = s.accept()
 
     # Attempt to open camera
     camera = cv.VideoCapture(0)
     if not camera.isOpened():
         raise Exception("Could not open camera.")
     
-    with conn:
-
-        print('Connected by', addr)
-
+    try:
+        print("Server is running. Waiting for instructions...")
         while True:
             # Read frame from camera along with instruction message from the client.
+            data, addr = s.recvfrom(1024)
             ret, frame = camera.read()
-            data = conn.recv(1024)
 
             # If the instruction request is SCF (Send Camera Frame), send the encoded camera frame.
             if data == b"SCF":
@@ -39,7 +36,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 base64_bytes = base64.b64encode(img_encode)
                 with open("output.txt", "wb") as f:
                     f.write(base64_bytes)
-                conn.sendall(img_encode)
+                s.sendto(img_encode, addr)
 
             # If the instruction request is RGS (Read Game State), send the current board state.
             if data == b"RGS":
@@ -57,11 +54,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     print(e)
                     boardState = b"ERROR"
                     
-                conn.sendall(boardState)
+                s.sendto(boardState, addr)
 
             # If the instruction request is QUIT, break the loop and close the connection.
             if data == b"QUIT":
                 break
-
-    # Release camera when connection is closed.
-    camera.release()
+    finally:
+        # Release camera when connection is closed.
+        camera.release()

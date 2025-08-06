@@ -13,7 +13,8 @@ public class Client : MonoBehaviour
     public string host = "127.0.0.1";
     public int port = 8181;
     IPAddress address;
-    TcpClient tcpClient = new TcpClient();
+    IPEndPoint endpt;
+    UdpClient udpClient = new UdpClient();
     bool cameraFeedActive = false;
     Texture2D tex;
 
@@ -42,7 +43,8 @@ public class Client : MonoBehaviour
     {
         tex = new Texture2D(320, 240);
         address = IPAddress.Parse(host);
-        tcpClient.Connect(new IPEndPoint(address, port));
+        endpt = new IPEndPoint(address, port);
+        udpClient.Connect(endpt);
     }
 
 
@@ -63,33 +65,36 @@ public class Client : MonoBehaviour
                 if (GameFlow.flow_instance != null && GameFlow.flow_instance.canScan == false) return null;
 
 
-                NetworkStream stream;
+                /*NetworkStream stream;
                 try
                 {
-                    stream = tcpClient.GetStream();
+                    stream = udpClient.GetStream();
                     notConnected = false;
                 }
                 catch (System.InvalidOperationException)
                 {
                     notConnected = true;
                     return null;
-                }
+                }*/
 
                 byte[] bufferWrite = Encoding.ASCII.GetBytes("RGS");
-                stream.Write(bufferWrite, 0, bufferWrite.Length);
-                byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
+                //stream.Write(bufferWrite, 0, bufferWrite.Length);
+                //byte[] buffer = new byte[udpClient.ReceiveBufferSize];
+                udpClient.Send(bufferWrite, bufferWrite.Length);
+                
+                byte[] buffer = udpClient.Receive(ref endpt);
 
-
-                int totalBytesRead = 0;
+                /*int totalBytesRead = 0;
                 do
                 {
                     int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
+                    udpClient.Receive(ref endpt);
                     totalBytesRead += bytesRead;
                 }
-                while (stream.DataAvailable);
+                while (stream.DataAvailable);*/
 
 
-                string data = Encoding.ASCII.GetString(buffer, 0, totalBytesRead);
+                string data = Encoding.ASCII.GetString(buffer);
 
 
                 if (data == "ERROR")
@@ -177,21 +182,29 @@ public class Client : MonoBehaviour
             {
                 if (GameFlow.flow_instance != null && !GameFlow.flow_instance.canScan) return;
 
-                NetworkStream stream = tcpClient.GetStream();
+                //NetworkStream stream = udpClient.GetStream();
                 byte[] bufferWrite = Encoding.ASCII.GetBytes("SCF");
-                stream.Write(bufferWrite, 0, bufferWrite.Length);
+                //stream.Write(bufferWrite, 0, bufferWrite.Length);
 
-                byte[] buffer = new byte[tcpClient.ReceiveBufferSize];
+                udpClient.Send(bufferWrite, bufferWrite.Length);
+
+                byte[] buffer = udpClient.Receive(ref endpt);
+
+                /*byte[] buffer = new byte[udpClient.ReceiveBufferSize];
+                
                 int totalBytesRead = 0;
                 do
                 {
                     int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
                     totalBytesRead += bytesRead;
                 }
-                while (stream.DataAvailable);
+                while (stream.DataAvailable);*/
 
-                imageData = new byte[totalBytesRead];
-                Array.Copy(buffer, imageData, totalBytesRead);
+                //imageData = new byte[totalBytesRead];
+
+                imageData = buffer;
+
+                Array.Copy(buffer, imageData, imageData.Length);
             }
         });
 
@@ -224,12 +237,15 @@ public class Client : MonoBehaviour
 
     void closeConnection()
     {
-        NetworkStream stream = tcpClient.GetStream();
+        //NetworkStream stream = udpClient.GetStream();
 
         byte[] bufferWrite = Encoding.ASCII.GetBytes("QUIT");
-        stream.Write(bufferWrite, 0, bufferWrite.Length);
 
-        tcpClient.Close();
+        udpClient.Send(bufferWrite, bufferWrite.Length);
+
+        //stream.Write(bufferWrite, 0, bufferWrite.Length);
+
+        udpClient.Close();
     }
 
 
