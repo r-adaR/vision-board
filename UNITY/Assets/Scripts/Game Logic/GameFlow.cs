@@ -58,7 +58,7 @@ public class GameFlow : MonoBehaviour
     private void Update()
     {
         if (!readingAsyncActive) clock += Time.deltaTime; // only increase clock counter if we're currently not confirming the board state
-        if (clock > 1f) // every second, see if the read board state is different
+        if (clock > 0.5f) // every second, see if the read board state is different
         {
             clock = 0;
             if (!readingAsyncActive && !checkingBoardChange)

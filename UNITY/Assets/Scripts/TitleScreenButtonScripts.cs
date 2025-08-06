@@ -6,8 +6,6 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using static GameState;
-using System.Collections;
-using UnityEngine.InputSystem;
 
 public class TitleScreenButtonScripts : MonoBehaviour
 {
@@ -67,7 +65,7 @@ public class TitleScreenButtonScripts : MonoBehaviour
         if (!enableScanning) return;
 
         clock += Time.deltaTime;
-        if (clock > 1f)
+        if (clock > 0.5f)
         {
             clock = 0;
             if (!isChecking)
