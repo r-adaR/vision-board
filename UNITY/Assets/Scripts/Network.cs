@@ -64,36 +64,13 @@ public class Client : MonoBehaviour
 
                 if (GameFlow.flow_instance != null && GameFlow.flow_instance.canScan == false) return null;
 
-
-                /*NetworkStream stream;
-                try
-                {
-                    stream = udpClient.GetStream();
-                    notConnected = false;
-                }
-                catch (System.InvalidOperationException)
-                {
-                    notConnected = true;
-                    return null;
-                }*/
-
+                // Send REQUEST GAME STATE command to server.
                 byte[] bufferWrite = Encoding.ASCII.GetBytes("RGS");
-                //stream.Write(bufferWrite, 0, bufferWrite.Length);
-                //byte[] buffer = new byte[udpClient.ReceiveBufferSize];
                 udpClient.Send(bufferWrite, bufferWrite.Length);
                 
+
+                // Receive data from server about the game state.
                 byte[] buffer = udpClient.Receive(ref endpt);
-
-                /*int totalBytesRead = 0;
-                do
-                {
-                    int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
-                    udpClient.Receive(ref endpt);
-                    totalBytesRead += bytesRead;
-                }
-                while (stream.DataAvailable);*/
-
-
                 string data = Encoding.ASCII.GetString(buffer);
 
 
@@ -182,28 +159,13 @@ public class Client : MonoBehaviour
             {
                 if (GameFlow.flow_instance != null && !GameFlow.flow_instance.canScan) return;
 
-                //NetworkStream stream = udpClient.GetStream();
+                // Send SEND CAMERA FRAME command to server.
                 byte[] bufferWrite = Encoding.ASCII.GetBytes("SCF");
-                //stream.Write(bufferWrite, 0, bufferWrite.Length);
-
                 udpClient.Send(bufferWrite, bufferWrite.Length);
 
+                // Receive camera frame from the server.
                 byte[] buffer = udpClient.Receive(ref endpt);
-
-                /*byte[] buffer = new byte[udpClient.ReceiveBufferSize];
-                
-                int totalBytesRead = 0;
-                do
-                {
-                    int bytesRead = stream.Read(buffer, totalBytesRead, buffer.Length - totalBytesRead);
-                    totalBytesRead += bytesRead;
-                }
-                while (stream.DataAvailable);*/
-
-                //imageData = new byte[totalBytesRead];
-
                 imageData = buffer;
-
                 Array.Copy(buffer, imageData, imageData.Length);
             }
         });
@@ -237,13 +199,9 @@ public class Client : MonoBehaviour
 
     void closeConnection()
     {
-        //NetworkStream stream = udpClient.GetStream();
-
+        // Send QUIT command to close the server.
         byte[] bufferWrite = Encoding.ASCII.GetBytes("QUIT");
-
         udpClient.Send(bufferWrite, bufferWrite.Length);
-
-        //stream.Write(bufferWrite, 0, bufferWrite.Length);
 
         udpClient.Close();
     }
