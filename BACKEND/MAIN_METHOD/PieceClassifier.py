@@ -13,7 +13,10 @@ import copy
 import random
 import math
 
-piece_classifier_model = torch.jit.load('PieceClassifierHard.pt')
+# piece_classifier_model = torch.jit.load('PieceClassifierHard.pt') # okay
+# piece_classifier_model = torch.jit.load('PieceClassifierHard2.pt') # REALLY GOOD
+# piece_classifier_model = torch.jit.load('PieceClassifierHard3.pt') # Good at + , but not great at Os
+piece_classifier_model = torch.jit.load('PieceClassifierHard4.pt') # REALLY GREAT!
 piece_classifier_model.eval()
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
