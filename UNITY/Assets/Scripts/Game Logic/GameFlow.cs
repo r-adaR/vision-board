@@ -7,6 +7,10 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using DG.Tweening;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor.Build.Player;
+using Unity.VisualScripting;
 
 public class GameFlow : MonoBehaviour
 {
@@ -29,11 +33,16 @@ public class GameFlow : MonoBehaviour
 
     public bool canScan = false; // blocks scanning at the start animation
 
-    bool readingAsyncActive = false;
+    private Queue<Side[,]> board_scans_queue = new Queue<Side[,]>();
+    private Dictionary<String, int> board_hash_map = new Dictionary<String, int>();
+
+    private bool readingAsyncActive = false;
     private bool checkingBoardChange = false;
+    private bool scanningBoard = false;
 
     private const int NUMBER_OF_SCANS = 10;
     private const float DELAY_PER_SCAN = 0.01f;
+    private const int THRESHOLD = 7;
 
     private void Awake()
     {
@@ -57,25 +66,20 @@ public class GameFlow : MonoBehaviour
 
     private void Update()
     {
-        if (!readingAsyncActive) clock += Time.deltaTime; // only increase clock counter if we're currently not confirming the board state
-        if (clock > 0.5f) // every second, see if the read board state is different
+
+        if (!scanningBoard) // makes sure that  boardScanBuffers isn't called when one is already running
         {
-            clock = 0;
-            if (!readingAsyncActive && !checkingBoardChange)
-            {
-                _ = CheckForBoardChangeAsync();
-            }
+            _ = boardScanBuffer();
         }
     }
 
 
-    
-
-    private async Task CheckForBoardChangeAsync()
+    private async Task boardScanBuffer()
     {
-        if (checkingBoardChange) return;
-        checkingBoardChange = true;
+        // lock function
+        scanningBoard = true;
 
+        // get board from scanner
         Side[,] newBoard;
         try
         {
@@ -84,88 +88,95 @@ public class GameFlow : MonoBehaviour
         }
         catch (Exception)
         {
-            checkingBoardChange = false;
+            scanningBoard = false;
             return;
         }
 
-        bool newBoardIsSame = AreBoardsEqual(newBoard, game_instance.board);
-        if (newBoard != null && !newBoardIsSame)
-        {
-            // start the confirmation process
-            // wait here until ConfirmBoardStateAsync() returns --> does not block main thread
-            await ConfirmBoardStateAsync(newBoard);
-        }
-        else if (newBoard == null)
+        if (newBoard == null)
         {
             Debug.LogWarning("Board could not be read");
+            scanningBoard = false;
+            return;
+        }
+
+        board_scans_queue.Enqueue(newBoard);
+        if (!board_hash_map.ContainsKey(boardToString(newBoard)))
+        {
+            board_hash_map[boardToString(newBoard)] = 1;
         }
         else
+        {
+            board_hash_map[boardToString(newBoard)]++;
+        }
+
+
+        // check if less than 10 scans already
+        if (board_scans_queue.Count <= 10)
+        {
+            scanningBoard = false;
+            return;
+            // return?
+
+        }
+        else
+        {
+            // remove oldest board from queue
+            Side[,] last_board = board_scans_queue.Dequeue();
+
+
+            if (board_hash_map[boardToString(last_board)] > 1) // decrement count in hashmap
+            {
+                board_hash_map[boardToString(last_board)]--;
+            }
+            else // remove from hashmap if last one of that board is removed
+            {
+                board_hash_map.Remove(boardToString(last_board));
+            }
+        }
+
+        // loop through dictionary/hashmap and find largest value
+        int max_value = board_hash_map.Values.Max();
+        String max_board = board_hash_map.FirstOrDefault(kvp => kvp.Value == max_value).Key;
+
+
+
+
+        int Thresh = THRESHOLD;
+        if (max_value <= Thresh) // if the above threshold, confirm board
+        {
+            // print($"many scans failed. Nulls: {1.0f * nulls / NUMBER_OF_SCANS > 0.2f}, Matched enough: {1.0f * correct / NUMBER_OF_SCANS < 0.7f}");
+
+            print($"Threshold = {Thresh}, not met. Max same board =  {max_value} Board = {max_board}");
+            scanningBoard = false;
+            return;
+
+        }
+
+        Side[,] side_max_board = stringToBoard(max_board);
+   
+
+        if (AreBoardsEqual(side_max_board, game_instance.board))
         {
             board_visuals.ClearErrors();
             if (illegalMoveIndicator.localPosition.y > 0) // if illegal move indicator is shown on screen
             {
                 illegalMoveIndicator.DOLocalMoveY(-50, 0.3f).SetEase(Ease.InExpo);
             }
-        }
-
-        checkingBoardChange = false;
-    }
-
-
-
-
-    /// <summary>
-    /// pass in a new board state as a parameter, this function will certify
-    /// beyond a shadow of a doubt that the board is indeed this state, and make that move.
-    /// </summary>
-    /// <param name="board"></param>
-    /// <returns></returns>
-    /// 
-
-    private async Task ConfirmBoardStateAsync(Side[,] _board)
-    {
-        readingAsyncActive = true;
-
-        //confirm board state
-        int correct = 0;
-        int nulls = 0;
-
-        for (int i = 0; i < NUMBER_OF_SCANS; i++)
-        {
-            Side[,] newScan = null;
-            try
-            {
-                // will wait here until GetBoardStateAsync() returns --> will not block main thread
-                newScan = await network_instance.GetBoardStateAsync();
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"Scan {i} failed: {e}");
-            }
-
-            if (newScan == null) nulls++;
-            else if (AreBoardsEqual(newScan, _board)) correct++;
-
-            print($"nulls: {nulls}/{i}, correct: {correct}/{i}\nTARGET BOARD: \n{boardToString(_board)} \n\nSEEN BOARD: \n{boardToString(newScan)}" +
-                  $"\nREAL BOARD: \n{boardToString(game_instance.board)}");
-
-            await Task.Delay(TimeSpan.FromSeconds(DELAY_PER_SCAN));
-        }
-
-
-        // if 20% were nulls, or less than 80% of the scans matched,
-        // ignore this new board state. the player is probably making a move
-        // if (1.0f * nulls / NUMBER_OF_SCANS > 0.2f || 1.0f * correct / NUMBER_OF_SCANS < 0.7f)
-        if (1.0f * correct / NUMBER_OF_SCANS < 0.3f)
-        {
-            readingAsyncActive = false;
-            print($"many scans failed. Nulls: {1.0f * nulls / NUMBER_OF_SCANS > 0.2f}, Matched enough: {1.0f * correct / NUMBER_OF_SCANS < 0.7f}");
+            scanningBoard = false;
             return;
         }
 
+        boardConfirmationSteps(side_max_board);
 
-        // board is confirmed to have made this move. "_board" is the current board state.
-        bool[,] errors = game_instance.GetErrors(game_instance.board, _board, game_instance.currentPlayer);
+
+
+        scanningBoard = false;
+    }
+
+    private void boardConfirmationSteps(Side[,] side_max_board)
+    {
+        // board is confirmed to have made this move. "max_board" is the current board state.
+        bool[,] errors = game_instance.GetErrors(game_instance.board, side_max_board, game_instance.currentPlayer);
         board_visuals.UpdateErrors(errors);
 
         if (game_instance.ThereAreErrors(errors))
@@ -179,7 +190,7 @@ public class GameFlow : MonoBehaviour
             if (illegalMoveIndicator.localPosition.y > 0) illegalMoveIndicator.DOLocalMoveY(-50, 0.3f).SetEase(Ease.InExpo);
 
             // advance the game!
-            Tuple<int, int, Side> pieceAdded = game_instance.GetFirstNewPiece(_board);
+            Tuple<int, int, Side> pieceAdded = game_instance.GetFirstNewPiece(side_max_board);
             game_instance.SetTile(pieceAdded.Item1, pieceAdded.Item2, pieceAdded.Item3);
 
             // IF WE GOT THE BONUS
@@ -196,13 +207,13 @@ public class GameFlow : MonoBehaviour
             int fiveInARows;
             bool celebrateFiveInARow = false;
 
-            game_instance.x_score = game_instance.GetScore(Side.X, _board, true, out fiveInARows);
+            game_instance.x_score = game_instance.GetScore(Side.X, side_max_board, true, out fiveInARows);
             if (game_instance.x_fiveInARows < fiveInARows)
             {
                 game_instance.x_fiveInARows = fiveInARows; celebrateFiveInARow = true;
             }
 
-            game_instance.o_score = game_instance.GetScore(Side.O, _board, true, out fiveInARows);
+            game_instance.o_score = game_instance.GetScore(Side.O, side_max_board, true, out fiveInARows);
             if (game_instance.o_fiveInARows < fiveInARows)
             {
                 game_instance.o_fiveInARows = fiveInARows; celebrateFiveInARow = true;
@@ -278,9 +289,10 @@ public class GameFlow : MonoBehaviour
             turn_text.text = "GAME OVER!";
             gameObject.SetActive(false);
         }
-
-        readingAsyncActive = false;
     }
+
+
+
 
 
 
@@ -301,12 +313,65 @@ public class GameFlow : MonoBehaviour
             {
                 if (boardState[y, x] == Side.NONE) debugString += "_";
                 else debugString += boardState[y, x].ToString();
+            }
+        }
+
+        return debugString;
+    }
+
+    private string boardToStringDebug(Side[,] boardState)
+    {
+        if (boardState == null) return "NULL BOARD";
+
+        // DEBUG
+        string debugString = "";
+        for (int y = 0; y < 5; y++)
+        {
+            for (int x = 0; x < 5; x++)
+            {
+                if (boardState[y, x] == Side.NONE) debugString += "_";
+                else debugString += boardState[y, x].ToString();
                 debugString += " ";
             }
             debugString += '\n';
         }
 
         return debugString;
+    }
+
+
+    private Side[,] stringToBoard(String data)
+    {
+        if (data == null) return new GameState.Side[5, 5];
+
+        // DEBUG
+
+        GameState.Side[,] boardState = new GameState.Side[5, 5];
+        int count = 0;
+
+        for (int i = 0; i < 5; i++)
+        {
+            for (int j = 0; j < 5; j++)
+            {
+                count = (i * 5) + j;
+
+
+                if (data[count] == 'X')
+                {
+                    boardState[i, j] = GameState.Side.X;
+                }
+                else if (data[count] == 'O')
+                {
+                    boardState[i, j] = GameState.Side.O;
+                }
+                else
+                {
+                    boardState[i, j] = GameState.Side.NONE;
+                }
+            }
+        }
+
+        return boardState;
     }
 
     private bool AreBoardsEqual(Side[,] _1, Side[,] _2)
