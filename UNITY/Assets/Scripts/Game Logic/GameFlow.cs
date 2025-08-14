@@ -9,8 +9,6 @@ using DG.Tweening;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEditor.Build.Player;
-using Unity.VisualScripting;
 
 public class GameFlow : MonoBehaviour
 {
@@ -36,12 +34,8 @@ public class GameFlow : MonoBehaviour
     private Queue<Side[,]> board_scans_queue = new Queue<Side[,]>();
     private Dictionary<String, int> board_hash_map = new Dictionary<String, int>();
 
-    private bool readingAsyncActive = false;
-    private bool checkingBoardChange = false;
     private bool scanningBoard = false;
 
-    private const int NUMBER_OF_SCANS = 10;
-    private const float DELAY_PER_SCAN = 0.01f;
     private const int THRESHOLD = 7;
 
     private void Awake()
@@ -62,7 +56,6 @@ public class GameFlow : MonoBehaviour
         canScan = true;
     }
 
-    private float clock = 0;
 
     private void Update()
     {
