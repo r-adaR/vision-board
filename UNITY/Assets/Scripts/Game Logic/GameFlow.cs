@@ -63,10 +63,47 @@ public class GameFlow : MonoBehaviour
 
         if (!scanningBoard) // makes sure that  boardScanBuffers isn't called when one is already running
         {
-            _ = boardScanBuffer();
+            //_ = boardScanBuffer();
+            _ = simpleBoardScanCaller();
         }
     }
 
+
+    private async Task simpleBoardScanCaller()
+    {
+        scanningBoard = true;
+        try
+        {
+            Side[,] newBoard = await Client.network_instance.GetBoardStateAsync();
+
+
+            if (newBoard == null)
+            {
+                Debug.LogWarning("Board could not be read");
+                scanningBoard = false;
+                return;
+            }
+            else if (AreBoardsEqual(newBoard, game_instance.board))
+                {
+                    board_visuals.ClearErrors();
+                    if (illegalMoveIndicator.localPosition.y > 0) // if illegal move indicator is shown on screen
+                    {
+                        illegalMoveIndicator.DOLocalMoveY(-50, 0.3f).SetEase(Ease.InExpo);
+                    }
+                    scanningBoard = false;
+                    return;
+                }
+            else
+            {
+                boardConfirmationSteps(newBoard);
+            }
+
+        }
+        finally
+        {
+            scanningBoard = false;
+        }
+    }
 
     private async Task boardScanBuffer()
     {
