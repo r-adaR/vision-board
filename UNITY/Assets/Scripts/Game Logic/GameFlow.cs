@@ -36,8 +36,8 @@ public class GameFlow : MonoBehaviour
 
     private bool scanningBoard = false;
 
-    private const int THRESHOLD = 3;
-    private const int DICT_LENGTH = 6;
+    private const int THRESHOLD = 2;
+    private const int DICT_LENGTH = 2;
 
     private void Awake()
     {
@@ -63,8 +63,8 @@ public class GameFlow : MonoBehaviour
 
         if (!scanningBoard) // makes sure that  boardScanBuffers isn't called when one is already running
         {
-            //_ = boardScanBuffer();
-            _ = simpleBoardScanCaller();
+            _ = boardScanBuffer();
+            //_ = simpleBoardScanCaller();
         }
     }
 
@@ -173,7 +173,7 @@ public class GameFlow : MonoBehaviour
 
 
         int Thresh = THRESHOLD;
-        if (max_value <= Thresh) // if the above threshold, confirm board
+        if (max_value < Thresh) // if the above or equal threshold, confirm board
         {
             // print($"many scans failed. Nulls: {1.0f * nulls / NUMBER_OF_SCANS > 0.2f}, Matched enough: {1.0f * correct / NUMBER_OF_SCANS < 0.7f}");
 
