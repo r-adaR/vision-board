@@ -36,7 +36,8 @@ public class GameFlow : MonoBehaviour
 
     private bool scanningBoard = false;
 
-    private const int THRESHOLD = 7;
+    private const int THRESHOLD = 3;
+    private const int DICT_LENGTH = 6;
 
     private void Awake()
     {
@@ -104,7 +105,7 @@ public class GameFlow : MonoBehaviour
 
 
         // check if less than 10 scans already
-        if (board_scans_queue.Count <= 10)
+        if (board_scans_queue.Count <= DICT_LENGTH)
         {
             scanningBoard = false;
             return;

@@ -101,15 +101,18 @@ public class Client : MonoBehaviour
                         }
                         else if (data[count] == '?')
                         {
+                            
                             // if uncertain for a tile that used to be X or O, then just treat it as X or O
                             if (game_instance.board[i, j] == Side.X || game_instance.board[i, j] == Side.O)
                             {
                                 boardState[i, j] = game_instance.board[i, j];
+                                print($"1 UNCERTAIN, REPLACED ? WITH :{game_instance.board[i, j].ToString()}");
                                 // boardState[i, j] = GameState.Side.UNSURE;
                             }
                             else
                             {
                                 // if uncertain about a spot that used to be empty, return board scan fail
+                                print($"2 UNCERTAIN, REPLACED ? WITH :{game_instance.board[i, j].ToString()}");
                                 boardState[i, j] = game_instance.board[i, j];
                                 // return null;
                             }
