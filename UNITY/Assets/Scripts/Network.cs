@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -12,20 +13,21 @@ public class Client : MonoBehaviour
 {
     public string host = "127.0.0.1";
     public int port = 8181;
-    IPAddress address;
+    //IPAddress address;
     IPEndPoint endpt;
     UdpClient udpClient = new UdpClient();
     bool cameraFeedActive = false;
     Texture2D tex;
 
     public bool notConnected = false;
+    public bool IsConnected { get; private set; }
 
     public static Client network_instance;
     private Image targetImg;
 
     private void Awake()
     {
-        if (network_instance != null)
+        if (network_instance != null && network_instance != this)
         {
             Destroy(gameObject);
         }
@@ -38,14 +40,63 @@ public class Client : MonoBehaviour
         SceneManager.sceneUnloaded += (scene) => { endCameraFeed(); targetImg = null; };
     }
 
+ 
 
+
+
+    
     void Start()
     {
         tex = new Texture2D(320, 240);
-        address = IPAddress.Parse(host);
-        endpt = new IPEndPoint(address, port);
-        udpClient.Connect(endpt);
     }
+    
+
+    /// <summary>
+    /// Sends a ping to the server to ensure that the server is up and running before continuing to the game
+    /// </summary>
+    /// <param name="token"></param>
+    /// <returns></returns>
+    public Task<bool> ConnectToServerAsync(CancellationToken token)
+    {
+        return Task.Run(() =>
+        {
+            lock (streamLock)
+            {
+                try
+                {
+                    udpClient = new UdpClient();
+                    endpt = new IPEndPoint(IPAddress.Parse(host), port);
+                    udpClient.Connect(endpt);
+
+                    byte[] bufferWrite = Encoding.ASCII.GetBytes("HELLO");
+                    udpClient.Send(bufferWrite, bufferWrite.Length);
+
+                    Debug.Log("HELLO sent, waiting for ACK...");
+
+                    byte[] buffer = udpClient.Receive(ref endpt);
+                    string data = Encoding.ASCII.GetString(buffer);
+
+                    Debug.Log(data);
+                    if (data == "ACK")
+                    {
+                        IsConnected = true;
+                        return IsConnected;
+                    }
+                    else
+                    {
+                        IsConnected = false;
+                        return IsConnected;
+                    }
+                }
+                catch
+                {
+                    IsConnected = false;
+                    return IsConnected;
+                }
+            }
+        });
+    }
+
 
 
     private void OnApplicationQuit()

@@ -24,6 +24,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             data, addr = s.recvfrom(1024)
             ret, frame = camera.read()
 
+
+            # tells client that the server is up and running!
+            if data == b"HELLO":
+                s.sendto(b"ACK", addr)
+
+
             # If the instruction request is SCF (Send Camera Frame), send the encoded camera frame.
             if data == b"SCF":
                 if not ret:
