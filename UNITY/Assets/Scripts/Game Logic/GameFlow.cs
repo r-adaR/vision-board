@@ -37,7 +37,7 @@ public class GameFlow : MonoBehaviour
     private bool scanningBoard = false;
 
     private const int THRESHOLD = 3;
-    private const int DICT_LENGTH = 3;
+    private const int DICT_LENGTH = 6;
 
     private void Awake()
     {
@@ -58,16 +58,29 @@ public class GameFlow : MonoBehaviour
     }
 
 
+    //private void Update()
+    //{
+
+    //    if (!scanningBoard) // makes sure that  boardScanBuffers isn't called when one is already running
+    //    {
+    //        _ = boardScanBuffer();
+    //        //_ = simpleBoardScanCaller();
+    //    }
+    //}
+
+    float clock = 0;
     private void Update()
     {
+        clock += Time.deltaTime;
+        if (clock > 0.3f) // every second, see if the read board state is different
 
-        if (!scanningBoard) // makes sure that  boardScanBuffers isn't called when one is already running
-        {
-            _ = boardScanBuffer();
-            //_ = simpleBoardScanCaller();
-        }
+            if (!scanningBoard) // makes sure that  boardScanBuffers isn't called when one is already running
+            {
+                clock = 0;
+                _ = boardScanBuffer();
+                
+            }
     }
-
 
     private async Task simpleBoardScanCaller()
     {
