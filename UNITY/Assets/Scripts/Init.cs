@@ -1,58 +1,5 @@
-/*
-using System.Collections;
-using UnityEngine;
-using UnityEngine.SceneManagement;
-
-public class Init : MonoBehaviour
-{
-    void Start()
-    {
-        DontDestroyOnLoad(gameObject);
-
-        // global var setup
-        VariableStorage.instance.Put("loadWithAnimation", false);
-
-        // first show INIT screen
-        SceneManager.LoadScene((int)LoadingScreen.Scene.INIT);
-
-        // wait until network connection confirmed
-        StartCoroutine(WaitForServerThenTitle());
-    }
-
-    private IEnumerator WaitForServerThenTitle()
-    {
-        //Client client = null;
-
-        Client client = Client.network_instance;
-
-        // Wait until Client.network_instance is assigned
-        while (client == null)
-        {
-            client = Client.network_instance;
-            yield return null; // wait a frame
-            print("WAITING FOR CLIENT");
-        }
-
-        Debug.Log("Client found, waiting for server connection...");
-
-        while (!client.IsConnected)
-        {
-            yield return null; // keep waiting
-        }
-
-        Debug.Log("Server connection established!");
-        yield return new WaitForSecondsRealtime(0.5f);
-
-        SceneManager.LoadScene((int)LoadingScreen.Scene.TITLE);
-        Destroy(gameObject);
-    }
-    */
-
-
-
 using System.Threading;
 using System.Threading.Tasks;
-using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
