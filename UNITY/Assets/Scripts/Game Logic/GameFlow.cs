@@ -36,8 +36,8 @@ public class GameFlow : MonoBehaviour
 
     private bool scanningBoard = false;
 
-    private const int THRESHOLD = 3;
-    private const int DICT_LENGTH = 6;
+    private const int THRESHOLD = 7;
+    private const int DICT_LENGTH = 10;
 
     private void Awake()
     {
