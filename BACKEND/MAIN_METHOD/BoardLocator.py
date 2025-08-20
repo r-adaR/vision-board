@@ -1,28 +1,73 @@
 import torch
 import torch.nn.functional as F
-import torchvision.datasets as datasets
-import torchvision.transforms as transforms
-from torch import optim
-from torch import nn
-from torch.utils.data import DataLoader, Dataset
-
+# import torchvision.datasets as datasets
+# import torchvision.transforms as transforms
+# from torch import optim
+# from torch import nn
+# from torch.utils.data import DataLoader, Dataset
 import numpy as np
 import cv2 as cv
-
 from scipy.spatial import ConvexHull
-
 from sklearn.cluster import AgglomerativeClustering
-
 import copy
-import random
+# import random
 import math
+# import ai_edge_torch
+import torch
+import tensorflow as tf
 
-board_locator_model = torch.jit.load('BoardLocatorHard.pt')
-board_locator_model.eval()
-INPUT_RESOLUTION = (106, 80)
-device = "cuda" if torch.cuda.is_available() else "cpu"
+
+
+interpreter = tf.lite.Interpreter(model_path="BoardLocatorHard.tflite")
+
+interpreter.allocate_tensors()
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+INPUT_RESOLUTION = (106, 80)  # (W, H)
 
 def locate_board(input_image, threshold=0.4, blur=0.0):
+    # Check if input is color
+    is_color = input_image.ndim == 3 and input_image.shape[-1] == 3
+    
+    # Convert to grayscale
+    image_grey = np.mean(input_image, axis=-1) if is_color else input_image
+
+    # Resize to model input resolution
+    scale_factor = image_grey.shape[0] / INPUT_RESOLUTION[1]
+    new_width = int(image_grey.shape[1] / scale_factor)
+    image_small = cv.resize(image_grey, (new_width, INPUT_RESOLUTION[1]), interpolation=cv.INTER_AREA)
+    image_small = cv.normalize(image_small, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX).astype(np.float32)
+
+    # Add batch and channel dimensions
+    input_tensor = image_small[np.newaxis, np.newaxis, :, :]  # shape (1, 1, H, W)
+
+    # Set input tensor
+    interpreter.set_tensor(input_details[0]['index'], input_tensor)
+    interpreter.invoke()
+
+    # Get output tensor
+    output_tensor = interpreter.get_tensor(output_details[0]['index'])  # shape (1, 1, H_out, W_out)
+    output_image = output_tensor[0, 0, :, :]  # remove batch & channel dims
+
+    # Optional: resize back to original image size
+    output_resized = cv.resize(output_image, (image_grey.shape[1], image_grey.shape[0]), interpolation=cv.INTER_CUBIC)
+
+    # Optional: apply Gaussian blur
+    if blur > 0.0:
+        blur_size = int(min(image_grey.shape) * blur)
+        if blur_size % 2 == 0:
+            blur_size += 1
+        if blur_size >= 3:
+            output_resized = cv.GaussianBlur(output_resized, (blur_size, blur_size), 0)
+
+    # Threshold
+    final_output = (output_resized > np.max(output_resized) * threshold).astype(np.uint8)
+
+    return final_output
+
+
+def locate_board2(input_image, threshold=0.4, blur=0.0):
     is_color = input_image.shape[-1] == 3
     
     # Greyscale image

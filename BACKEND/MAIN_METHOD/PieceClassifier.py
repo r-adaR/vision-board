@@ -1,45 +1,49 @@
-import torch
-import torch.nn.functional as F
-import torchvision.datasets as datasets
-import torchvision.transforms as transforms
-from torch import optim
-from torch import nn
-from torch.utils.data import DataLoader, Dataset
-
 import numpy as np
 import cv2 as cv
-
 import copy
 import random
 import math
-
-# piece_classifier_model = torch.jit.load('PieceClassifierHard.pt') # okay
-# piece_classifier_model = torch.jit.load('PieceClassifierHard2.pt') # REALLY GOOD
-# piece_classifier_model = torch.jit.load('PieceClassifierHard3.pt') # Good at + , but not great at Os
-piece_classifier_model = torch.jit.load('PieceClassifierHard4.pt') # REALLY GREAT!
-piece_classifier_model.eval()
-device = "cuda" if torch.cuda.is_available() else "cpu"
+import tensorflow as tf  # TensorFlow Lite uses tf.lite.Interpreter
 
 
+interpreter = tf.lite.Interpreter(model_path="PieceClassifierHard4.tflite")
+interpreter.allocate_tensors()
 
-def classify_piece(input_tile_image, certainty_threshold=0.98):
-    # Push input tile through piece classifier.
-    piece_classifier_model.to(device)
-    with torch.no_grad():
-        data = torch.from_numpy(input_tile_image).unsqueeze(0).unsqueeze(0).to(device)
-    
-        prediction = piece_classifier_model(data)
-        prediction = prediction[0]
-    
-        prediction = np.array(prediction.detach().cpu().numpy())
+# Get input/output details
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
 
-    # If too uncertain, return None
+# print("Input details:", input_details)
+# print("Output details:", output_details)
+
+
+def classify_piece(input_tile_image, certainty_threshold=0.98, class_dict={0:'', 1:'X', 2:'O', None:'?'}):
+    # Convert to float32
+    data = np.array(input_tile_image, dtype=np.float32)
+
+    # Resize to 40x40 if not already
+    data = cv.resize(data, (40, 40), interpolation=cv.INTER_AREA)
+
+    # Add channel dimension (1, 40, 40)
+    if len(data.shape) == 2:
+        data = np.expand_dims(data, axis=0)  # channel-first
+
+    # Add batch dimension (1, 1, 40, 40)
+    data = np.expand_dims(data, axis=0)
+
+    # Ensure dtype
+    data = data.astype(input_details[0]["dtype"])
+
+    # Run inference
+    interpreter.set_tensor(input_details[0]['index'], data)
+    interpreter.invoke()
+    prediction = interpreter.get_tensor(output_details[0]['index'])[0]
+
     if np.max(prediction) < certainty_threshold:
         return None
 
-    # Return the most confident answer.
     tile_prediction = np.argmax(prediction)
-    return tile_prediction
+    return class_dict[tile_prediction]
 
 
 
@@ -54,14 +58,11 @@ def read_board(input_overhead_image, class_dict={0:'', 1:'X', 2:'O', None:'?'}):
         for x in range(5):
             img_section = input_overhead_image[y*height:(y+1)*height, x*width:(x+1)*width]
 
-            predicted_tile = classify_piece(img_section)
+            predicted_tile = classify_piece(img_section, class_dict=class_dict)
 
-            # Update read board for this space
-            predicted_tile = class_dict[predicted_tile]
             final_board[y,x] = predicted_tile
 
     return final_board
-
 
 
 def are_boards_equal(board_1, board_2):

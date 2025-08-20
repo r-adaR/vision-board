@@ -1,2 +1,4 @@
 /training_data
 /__pycache__/
+BoardLocatorTFLITEconverter.py
+PieceClassifierTFLITEconverter.py
