@@ -40,8 +40,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 img_encode = cv.imencode('.jpg', resized_img)[1].tobytes()
                 
                 base64_bytes = base64.b64encode(img_encode)
-                with open("output.txt", "wb") as f:
-                    f.write(base64_bytes)
+                # with open("output.txt", "wb") as f:
+                #     f.write(base64_bytes)
                 s.sendto(img_encode, addr)
 
             # If the instruction request is RGS (Read Game State), send the current board state.
