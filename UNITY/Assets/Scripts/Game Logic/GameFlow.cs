@@ -72,7 +72,7 @@ public class GameFlow : MonoBehaviour
     private void Update()
     {
         clock += Time.deltaTime;
-        if (clock > 0.3f) // every second, see if the read board state is different
+        if (clock > 0.0f) // every second, see if the read board state is different
 
             if (!scanningBoard) // makes sure that  boardScanBuffers isn't called when one is already running
             {
