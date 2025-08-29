@@ -125,9 +125,9 @@ public class Client : MonoBehaviour
                 string data = Encoding.ASCII.GetString(buffer);
 
 
-                if (data == "ERROR")
+                if (data.StartsWith("ERR"))
                 {
-                    Debug.LogWarning("Received ERROR from server");
+                    Debug.LogWarning("Error reading board.\nBackend stack trace: "+data);
                     return null;
                 }
 
@@ -200,6 +200,36 @@ public class Client : MonoBehaviour
 
     }
 
+
+    /// <summary>
+    /// tries to change the index of which camera python will use. Task returns false if the indexed camera can't be used.
+    /// Also prints stack trace.
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    public Task<bool> ChangeCameraFeed(int index)
+    {
+        return Task.Run(() =>
+        {
+            lock (streamLock)
+            {
+                byte[] bufferWrite = Encoding.ASCII.GetBytes($"CAM{index}");
+                udpClient.Send(bufferWrite, bufferWrite.Length);
+
+                byte[] buffer = udpClient.Receive(ref endpt);
+                string message = Encoding.ASCII.GetString(buffer);
+
+                bool isError = message.StartsWith("ERR");
+                if (isError)
+                {
+                    Debug.LogError("Error switching camera.\nBackend stack trace: " + message);
+                    return message.Contains("ALREADY OPEN");
+                }
+                Debug.Log(message);
+                return true;
+            }
+        });
+    }
 
 
     public async Task DisplayCameraFeedAsync()

@@ -36,8 +36,8 @@ public class GameFlow : MonoBehaviour
 
     private bool scanningBoard = false;
 
-    private const int THRESHOLD = 7;
-    private const int DICT_LENGTH = 10;
+    private const int THRESHOLD = 3;
+    private const int DICT_LENGTH = 6;
 
     private void Awake()
     {
@@ -183,14 +183,11 @@ public class GameFlow : MonoBehaviour
         String max_board = board_hash_map.FirstOrDefault(kvp => kvp.Value == max_value).Key;
 
 
-
-
-        int Thresh = THRESHOLD;
-        if (max_value < Thresh) // if the above or equal threshold, confirm board
+        if (max_value < THRESHOLD) // if the above or equal threshold, confirm board
         {
             // print($"many scans failed. Nulls: {1.0f * nulls / NUMBER_OF_SCANS > 0.2f}, Matched enough: {1.0f * correct / NUMBER_OF_SCANS < 0.7f}");
 
-            print($"Threshold = {Thresh}, not met. Max same board =  {max_value} Board = {max_board}");
+            print($"Threshold = {THRESHOLD}, not met. Max same board =  {max_value} Board = {max_board}");
             scanningBoard = false;
             return;
 

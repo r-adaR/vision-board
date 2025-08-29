@@ -17,7 +17,17 @@ import copy
 import random
 import math
 
-board_locator_model = torch.jit.load('BoardLocatorHard.pt')
+#####
+import sys
+from os import path
+def resource_path(name: str) -> str:
+    # locates resources correctly in both dev mode and builds
+    if hasattr(sys, "_MEIPASS"):
+        return path.join(sys._MEIPASS, name)
+    return path.join(path.abspath("."), name)
+#####
+
+board_locator_model = torch.jit.load(resource_path('BoardLocatorHard.pt'))
 board_locator_model.eval()
 INPUT_RESOLUTION = (106, 80)
 device = "cuda" if torch.cuda.is_available() else "cpu"

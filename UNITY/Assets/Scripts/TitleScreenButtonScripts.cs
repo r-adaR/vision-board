@@ -13,9 +13,19 @@ public class TitleScreenButtonScripts : MonoBehaviour
     [SerializeField] private TMP_Text boardText;
     [SerializeField] private GameObject networkErrorText;
 
+
+    private int cameraIndex;
+    [SerializeField] private TMP_Text indexText;
+
+
     private void Start()
     {
         Client.network_instance.startCameraFeed(camImage);
+
+        // this is only for tracking in Unity's UI. does not set the actual camera index
+        cameraIndex = VariableStorage.instance.TryGet<int>("camIndex", 0);
+        indexText.text = "Camera " + (cameraIndex + 1).ToString();
+        indexText.color = VariableStorage.instance.TryGet<bool>("camWorks", true) ? Color.white : Color.red;
     }
 
     public void OpenGithub()
@@ -110,5 +120,23 @@ public class TitleScreenButtonScripts : MonoBehaviour
     }
 
 
+    public async void IncrementCamera()
+    {
+        bool result = await Client.network_instance.ChangeCameraFeed(++cameraIndex);
+        indexText.text = "Camera " + (cameraIndex + 1).ToString();
+        indexText.color = result ? Color.white : Color.red;
+        VariableStorage.instance.Put("camIndex", cameraIndex);
+        VariableStorage.instance.Put("camWorks", result);
+    }
+
+    public async void DecrementCamera()
+    {
+        if (cameraIndex == 0) return; // no negative indexes allowed
+        bool result = await Client.network_instance.ChangeCameraFeed(--cameraIndex);
+        indexText.text = "Camera " + (cameraIndex + 1).ToString();
+        indexText.color = result ? Color.white : Color.red;
+        VariableStorage.instance.Put("camIndex", cameraIndex);
+        VariableStorage.instance.Put("camWorks", result);
+    }
 
 }
