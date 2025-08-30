@@ -99,7 +99,7 @@ public class GameFlow : MonoBehaviour
             else if (AreBoardsEqual(newBoard, game_instance.board))
                 {
                     board_visuals.ClearErrors();
-                    if (illegalMoveIndicator.localPosition.y > 0) // if illegal move indicator is shown on screen
+                    if (illegalMoveIndicator.localPosition.y >= 50) // if illegal move indicator is shown on screen
                     {
                         illegalMoveIndicator.DOLocalMoveY(-50, 0.3f).SetEase(Ease.InExpo);
                     }
@@ -199,7 +199,7 @@ public class GameFlow : MonoBehaviour
         if (AreBoardsEqual(side_max_board, game_instance.board))
         {
             board_visuals.ClearErrors();
-            if (illegalMoveIndicator.localPosition.y > 0) // if illegal move indicator is shown on screen
+            if (illegalMoveIndicator.localPosition.y >= 50) // if illegal move indicator is shown on screen
             {
                 illegalMoveIndicator.DOLocalMoveY(-50, 0.3f).SetEase(Ease.InExpo);
             }
@@ -228,7 +228,7 @@ public class GameFlow : MonoBehaviour
         else
         {
             // if illegal move indicator was shown on screen, bring it back down. at this point, all tiles are legal.
-            if (illegalMoveIndicator.localPosition.y > 0) illegalMoveIndicator.DOLocalMoveY(-50, 0.3f).SetEase(Ease.InExpo);
+            if (illegalMoveIndicator.localPosition.y >= 50) illegalMoveIndicator.DOLocalMoveY(-50, 0.3f).SetEase(Ease.InExpo);
 
             // advance the game!
             Tuple<int, int, Side> pieceAdded = game_instance.GetFirstNewPiece(side_max_board);
